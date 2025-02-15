@@ -44,49 +44,42 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {documentos.map(doc => (
-              <TableRow key={doc.id}>
-                <TableCell>
-                  {editDocId === doc.id ? (
-                    <TextField 
-                      value={nuevoNombre} 
-                      onChange={(e) => setNuevoNombre(e.target.value)} 
-                    />
-                  ) : (
-                    doc.nombre_archivo
-                  )}
-                </TableCell>
-                <TableCell>
-                  {/* Se modifica la URL para que utilice el endpoint /api/documentos */}
-                  <a 
-                    href={`http://localhost:5000/api/documentos/${doc.ruta_archivo}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    Ver
-                  </a>
-                </TableCell>
-                <TableCell>
-                  {editDocId === doc.id ? (
-                    <Button variant="contained" onClick={() => handleRename(doc.id)}>
-                      Guardar
-                    </Button>
-                  ) : (
-                    <IconButton 
-                      onClick={() => { 
-                        setEditDocId(doc.id); 
-                        setNuevoNombre(doc.nombre_archivo); 
-                      }}
+            {documentos.map(doc => {
+              // Extraer solo el nombre del archivo (basename)
+              const filename = doc.ruta_archivo.split('/').pop();
+              return (
+                <TableRow key={doc.id}>
+                  <TableCell>
+                    {editDocId === doc.id ? (
+                      <TextField value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} />
+                    ) : (
+                      doc.nombre_archivo
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <a 
+                      href={`http://localhost:5000/api/documentos/${filename}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                     >
-                      <EditIcon />
+                      Ver
+                    </a>
+                  </TableCell>
+                  <TableCell>
+                    {editDocId === doc.id ? (
+                      <Button variant="contained" onClick={() => handleRename(doc.id)}>Guardar</Button>
+                    ) : (
+                      <IconButton onClick={() => { setEditDocId(doc.id); setNuevoNombre(doc.nombre_archivo); }}>
+                        <EditIcon />
+                      </IconButton>
+                    )}
+                    <IconButton onClick={() => handleDelete(doc.id)}>
+                      <DeleteIcon />
                     </IconButton>
-                  )}
-                  <IconButton onClick={() => handleDelete(doc.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>
