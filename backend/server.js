@@ -50,13 +50,13 @@ app.get('/', (req, res) => {
   res.send('Sistema de Gestión de Trámites Migratorios');
 });
 
-// Servir el frontend
-app.use(express.static(path.join(__dirname, '../frontend/build')
+// Servir el frontend desde "frontend/gestion-tramites-frontend/build"
+app.use(express.static(path.join(__dirname, '../frontend/gestion-tramites-frontend/build')
 ));
 
 // Manejar rutas desconocidas y redirigir al frontend
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/gestion-tramites-frontend/build', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;

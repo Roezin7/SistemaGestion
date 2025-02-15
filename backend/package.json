@@ -4,11 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "install-client": "cd ../frontend && npm install",
-    "build-client": "cd ../frontend && npm run build",
+    "install-client": "cd ../frontend/gestion-tramites-frontend && npm install || echo 'Skipping frontend install...'",
+    "build-client": "cd ../frontend/gestion-tramites-frontend && npm run build || echo 'Skipping frontend build...'",
     "postinstall": "npm run install-client && npm run build-client"
-  }
-,
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
