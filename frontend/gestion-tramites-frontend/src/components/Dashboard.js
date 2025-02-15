@@ -118,7 +118,7 @@ const Dashboard = () => {
 
   return (
     <Box p={2}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>       
         Dashboard
       </Typography>
 

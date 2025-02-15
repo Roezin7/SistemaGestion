@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
+import logo from '../assets/newlogo.png'; // Asegúrate de que el logo esté en src/assets/logo.png
 
 const LoginPage = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -10,7 +11,6 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   const handleLogin = async () => {
     try {
-      // Se modifica la URL para apuntar directamente al backend en el puerto 5000
       const response = await axios.post('http://localhost:5000/api/auth/login', { username, password });
       if (response.data.success) {
         onLoginSuccess();
@@ -22,15 +22,20 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   return (
     <Container maxWidth="sm">
-      <Box mt={8} p={4} boxShadow={3}>
+      <Box mt={8} p={4} boxShadow={3} textAlign="center">
+        {/* Agregar el logo */}
+        <img src={logo} alt="Logo" style={{ width: 150, marginBottom: 20 }} />
+
         <Typography variant="h4" align="center" gutterBottom>
           Iniciar Sesión
         </Typography>
+
         {error && (
           <Typography variant="body1" color="error">
             {error}
           </Typography>
         )}
+
         <TextField
           label="Usuario"
           variant="outlined"
@@ -48,6 +53,7 @@ const LoginPage = ({ onLoginSuccess }) => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        
         <Box mt={2}>
           <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
             Iniciar Sesión
