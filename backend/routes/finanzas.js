@@ -78,7 +78,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// NUEVO: Editar una transacción existente
+// Editar una transacción existente
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { tipo, concepto, fecha, monto, client_id } = req.body;

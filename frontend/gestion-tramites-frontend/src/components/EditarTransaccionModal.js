@@ -1,92 +1,112 @@
 // src/components/EditarTransaccionModal.js
-import React, { useState } from 'react';
-import {
-  Modal,
-  Box,
-  Typography,
-  TextField,
-  Button
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Modal, Box, Typography, TextField, Button, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import axios from 'axios';
 
-const style = {
+const modalStyle = {
   position: 'absolute',
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
   width: 400,
   bgcolor: 'background.paper',
+  boxShadow: 24,
   p: 4,
 };
 
-const EditarTransaccionModal = ({ open, transaccion, onClose }) => {
+const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdated }) => {
   const [tipo, setTipo] = useState(transaccion.tipo);
   const [concepto, setConcepto] = useState(transaccion.concepto);
   const [fecha, setFecha] = useState(transaccion.fecha);
   const [monto, setMonto] = useState(transaccion.monto);
   const [clientId, setClientId] = useState(transaccion.client_id);
+  const [clients, setClients] = useState([]);
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/clientes')
+      .then(response => setClients(response.data))
+      .catch(error => console.error('Error al cargar clientes:', error));
+  }, []);
+
+  const handleGuardar = async () => {
     try {
-      await axios.put(`/api/finanzas/${transaccion.id}`, {
+      const response = await axios.put(`http://localhost:5000/api/finanzas/${transaccion.id}`, {
         tipo,
         concepto,
         fecha,
         monto,
         client_id: clientId,
       });
+      onTransaccionUpdated(response.data);
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error('Error al actualizar la transacción:', error);
     }
   };
 
   return (
     <Modal open={open} onClose={onClose}>
-      <Box sx={style}>
-        <Typography variant="h6" gutterBottom>
+      <Box sx={modalStyle}>
+        <Typography variant="h6" mb={2}>
           Editar Transacción
         </Typography>
         <TextField
-          fullWidth
+          select
           label="Tipo"
+          fullWidth
           margin="normal"
           value={tipo}
           onChange={(e) => setTipo(e.target.value)}
-        />
+        >
+          <MenuItem value="ingreso">Ingreso</MenuItem>
+          <MenuItem value="egreso">Egreso</MenuItem>
+          <MenuItem value="abono">Abono</MenuItem>
+          <MenuItem value="retiro">Retiro</MenuItem>
+        </TextField>
         <TextField
-          fullWidth
           label="Concepto"
+          fullWidth
           margin="normal"
           value={concepto}
           onChange={(e) => setConcepto(e.target.value)}
         />
         <TextField
-          fullWidth
           label="Fecha"
-          margin="normal"
           type="date"
-          InputLabelProps={{ shrink: true }}
+          fullWidth
+          margin="normal"
           value={fecha}
           onChange={(e) => setFecha(e.target.value)}
+          InputLabelProps={{ shrink: true }}
         />
         <TextField
-          fullWidth
           label="Monto"
+          fullWidth
           margin="normal"
           type="number"
           value={monto}
           onChange={(e) => setMonto(e.target.value)}
         />
-        <TextField
-          fullWidth
-          label="Cliente ID"
-          margin="normal"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-        />
-        <Box mt={2} display="flex" justifyContent="space-between">
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="client-select-label">Cliente (opcional)</InputLabel>
+          <Select
+            labelId="client-select-label"
+            label="Cliente (opcional)"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>Ninguno</em>
+            </MenuItem>
+            {clients.map(client => (
+              <MenuItem key={client.id} value={client.id}>
+                {client.nombre} - {client.numero_recibo}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Box mt={2} display="flex" justifyContent="flex-end" gap={1}>
+          <Button variant="contained" color="primary" onClick={handleGuardar}>
             Guardar
           </Button>
           <Button variant="outlined" onClick={onClose}>

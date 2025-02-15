@@ -43,11 +43,11 @@ function App() {
     <Container maxWidth="lg">
       <AppBar position="static">
         <Toolbar>
-          <img src={logo} alt="Logo" style={{ height: 40, marginRight: 16 }} />
+          <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
           <Typography variant="h6" style={{ flexGrow: 1 }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
-          <img src={leaderLogo} alt="LEADER" style={{ height: 40 }} />
+          <img src={leaderLogo} alt="LEADER" style={{ height: 20 }} />
         </Toolbar>
       </AppBar>
       <Tabs value={tabIndex} onChange={handleTabChange} aria-label="tabs">

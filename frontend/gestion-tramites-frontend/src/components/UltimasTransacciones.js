@@ -16,9 +16,11 @@ import {
   IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
 import { getDefaultDateRange } from '../utils/dateUtils';      // Función para definir rango de fechas
 import { currencyFormatter } from '../utils/formatUtils';      // Formateador de montos en USD
+import EditarTransaccionModal from './EditarTransaccionModal';  // Nuevo componente para editar transacciones
 
 const UltimasTransacciones = () => {
   // Fechas por defecto: mes actual
@@ -29,6 +31,8 @@ const UltimasTransacciones = () => {
   });
 
   const [transacciones, setTransacciones] = useState([]);
+  const [selectedTransaccion, setSelectedTransaccion] = useState(null);
+  const [openEditarModal, setOpenEditarModal] = useState(false);
 
   // Cargar transacciones desde el backend
   const cargarTransacciones = () => {
@@ -56,6 +60,19 @@ const UltimasTransacciones = () => {
         })
         .catch(error => console.error('Error al eliminar transacción:', error));
     }
+  };
+
+  // Abrir el modal de edición para una transacción
+  const handleEditTransaccion = (tran) => {
+    setSelectedTransaccion(tran);
+    setOpenEditarModal(true);
+  };
+
+  // Cerrar el modal de edición y refrescar la lista
+  const handleCloseEditarModal = () => {
+    setOpenEditarModal(false);
+    setSelectedTransaccion(null);
+    cargarTransacciones();
   };
 
   return (
@@ -125,6 +142,10 @@ const UltimasTransacciones = () => {
                   {currencyFormatter.format(parseFloat(tran.monto))}
                 </TableCell>
                 <TableCell>
+                  {/* Botón para editar */}
+                  <IconButton onClick={() => handleEditTransaccion(tran)}>
+                    <EditIcon color="primary" />
+                  </IconButton>
                   {/* Botón para eliminar */}
                   <IconButton onClick={() => handleDeleteTransaccion(tran.id)}>
                     <DeleteIcon color="error" />
@@ -142,6 +163,16 @@ const UltimasTransacciones = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Modal para editar transacción */}
+      {openEditarModal && selectedTransaccion && (
+        <EditarTransaccionModal
+          open={openEditarModal}
+          transaccion={selectedTransaccion}
+          onClose={handleCloseEditarModal}
+          onTransaccionUpdated={handleCloseEditarModal}
+        />
+      )}
     </Box>
   );
 };
