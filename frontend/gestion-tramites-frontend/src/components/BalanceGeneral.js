@@ -1,5 +1,5 @@
 // src/components/BalanceGeneral.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, TextField, Button, Paper, Grid } from '@mui/material';
 import axios from 'axios';
 import { getDefaultDateRange } from '../utils/dateUtils';
@@ -12,17 +12,24 @@ const BalanceGeneral = () => {
     fechaInicio: defaultRange.fechaInicio,
     fechaFin: defaultRange.fechaFin,
   });
+
   const [balance, setBalance] = useState(null);
 
-  const fetchBalance = () => {
-    axios.get('http://localhost:5000/api/kpis', { params: dateRange })
-      .then(response => setBalance(response.data.balance_general))
-      .catch(error => console.error('Error al cargar balance:', error));
-  };
+  // Definimos la función fetchBalance con useCallback,
+  // para que su referencia no cambie en cada render.
+  // La dependencia es "dateRange" para que se actualice cuando cambien las fechas.
+  const fetchBalance = useCallback(() => {
+    axios
+      .get('http://localhost:5000/api/kpis', { params: dateRange })
+      .then((response) => setBalance(response.data.balance_general))
+      .catch((error) => console.error('Error al cargar balance:', error));
+  }, [dateRange]);
 
+  // useEffect llama a fetchBalance cuando se monte el componente
+  // y cada vez que cambie la referencia de fetchBalance (o sea, cuando cambie dateRange).
   useEffect(() => {
     fetchBalance();
-  }, [dateRange]);
+  }, [fetchBalance]);
 
   const handleDateChange = (e) => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
