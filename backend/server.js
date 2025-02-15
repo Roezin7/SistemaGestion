@@ -21,7 +21,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Servir archivos estáticos (para la carga de documentos)
 app.use('/uploads', express.static(uploadsDir));
 
-// Rutas
+// Rutas existentes
 const clientesRoutes = require('./routes/clientes');
 const finanzasRoutes = require('./routes/finanzas');
 const kpisRoutes = require('./routes/kpis');
@@ -29,6 +29,21 @@ const kpisRoutes = require('./routes/kpis');
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/finanzas', finanzasRoutes);
 app.use('/api/kpis', kpisRoutes);
+
+// Nueva ruta de autenticación
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
+// Endpoint para visualizar documentos subidos correctamente
+app.get('/api/documentos/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(uploadsDir, filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Documento no encontrado');
+  }
+});
 
 // Ruta de prueba
 app.get('/', (req, res) => {

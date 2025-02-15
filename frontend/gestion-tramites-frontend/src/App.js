@@ -5,9 +5,10 @@ import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
 import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
+import LoginPage from './components/LoginPage';
 import { AccountCircle, Dashboard as DashboardIcon, AttachMoney, Assessment } from '@mui/icons-material';
-import logo from './assets/newlogo.png'; // Nuevo logo principal
-import leaderLogo from './assets/leaderlogo.png'; // Logo LEADER, con transparencia
+import logo from './assets/newlogo.png';
+import leaderLogo from './assets/leaderlogo.png';
 
 function a11yProps(index) {
   return {
@@ -26,55 +27,47 @@ function TabPanel(props) {
 }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
 
-  const handleChange = (event, newValue) => {
-    setTabIndex(newValue);
+  const handleTabChange = (event, newIndex) => {
+    setTabIndex(newIndex);
   };
 
+  // Si el usuario no está autenticado, se muestra la pantalla de login
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
-    <Container maxWidth="lg" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Container maxWidth="lg">
       <AppBar position="static">
         <Toolbar>
-          <img src={logo} alt="Nuevo Logo" style={{ height: '120px', marginRight: '20px' }} />
-          <Typography variant="h4" component="div" sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold' }}>
+          <img src={logo} alt="Logo" style={{ height: 40, marginRight: 16 }} />
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
+          <img src={leaderLogo} alt="LEADER" style={{ height: 40 }} />
         </Toolbar>
-        <Tabs value={tabIndex} onChange={handleChange} variant="fullWidth">
-          <Tab icon={<DashboardIcon />} label="Dashboard" {...a11yProps(0)} />
-          <Tab icon={<AccountCircle />} label="Clientes" {...a11yProps(1)} />
-          <Tab icon={<AttachMoney />} label="Finanzas" {...a11yProps(2)} />
-          <Tab icon={<Assessment />} label="Reportes" {...a11yProps(3)} />
-        </Tabs>
       </AppBar>
-
-      <Box sx={{ flex: 1 }}>
-        <TabPanel value={tabIndex} index={0}>
-          <Dashboard />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={1}>
-          <ClientesPage />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={2}>
-          <FinanzasPage />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={3}>
-          <ReportesPage />
-        </TabPanel>
-      </Box>
-
-      {/* Footer con logo LEADER */}
-      <Box sx={{ textAlign: 'center', mb: 2 }}>
-        <img
-          src={leaderLogo}
-          alt="LEADER Logo"
-          style={{
-            opacity: 0.3,
-            maxHeight: '30px',
-          }}
-        />
-      </Box>
+      <Tabs value={tabIndex} onChange={handleTabChange} aria-label="tabs">
+        <Tab label="Dashboard" icon={<DashboardIcon />} {...a11yProps(0)} />
+        <Tab label="Clientes" icon={<AccountCircle />} {...a11yProps(1)} />
+        <Tab label="Finanzas" icon={<AttachMoney />} {...a11yProps(2)} />
+        <Tab label="Reportes" icon={<Assessment />} {...a11yProps(3)} />
+      </Tabs>
+      <TabPanel value={tabIndex} index={0}>
+        <Dashboard />
+      </TabPanel>
+      <TabPanel value={tabIndex} index={1}>
+        <ClientesPage />
+      </TabPanel>
+      <TabPanel value={tabIndex} index={2}>
+        <FinanzasPage />
+      </TabPanel>
+      <TabPanel value={tabIndex} index={3}>
+        <ReportesPage />
+      </TabPanel>
     </Container>
   );
 }

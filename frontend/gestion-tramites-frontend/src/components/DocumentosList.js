@@ -48,21 +48,36 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
               <TableRow key={doc.id}>
                 <TableCell>
                   {editDocId === doc.id ? (
-                    <TextField value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} />
+                    <TextField 
+                      value={nuevoNombre} 
+                      onChange={(e) => setNuevoNombre(e.target.value)} 
+                    />
                   ) : (
                     doc.nombre_archivo
                   )}
                 </TableCell>
                 <TableCell>
-                  <a href={`${window.location.origin}/${doc.ruta_archivo}`} target="_blank" rel="noopener noreferrer">
+                  {/* Se modifica la URL para que utilice el endpoint /api/documentos */}
+                  <a 
+                    href={`http://localhost:5000/api/documentos/${doc.ruta_archivo}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
                     Ver
                   </a>
                 </TableCell>
                 <TableCell>
                   {editDocId === doc.id ? (
-                    <Button variant="contained" onClick={() => handleRename(doc.id)}>Guardar</Button>
+                    <Button variant="contained" onClick={() => handleRename(doc.id)}>
+                      Guardar
+                    </Button>
                   ) : (
-                    <IconButton onClick={() => { setEditDocId(doc.id); setNuevoNombre(doc.nombre_archivo); }}>
+                    <IconButton 
+                      onClick={() => { 
+                        setEditDocId(doc.id); 
+                        setNuevoNombre(doc.nombre_archivo); 
+                      }}
+                    >
                       <EditIcon />
                     </IconButton>
                   )}

@@ -78,5 +78,22 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// NUEVO: Editar una transacción existente
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { tipo, concepto, fecha, monto, client_id } = req.body;
+  try {
+    const result = await db.query(
+      'UPDATE finanzas SET tipo = $1, concepto = $2, fecha = $3, monto = $4, client_id = $5 WHERE id = $6 RETURNING *',
+      [tipo, concepto, fecha, monto, client_id || null, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
