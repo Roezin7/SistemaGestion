@@ -44,7 +44,7 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
-          <Typography variant="h6" style={{ flexGrow: 1 }}>
+          <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
           <img src={leaderLogo} alt="LEADER" style={{ height: 20 }} />
