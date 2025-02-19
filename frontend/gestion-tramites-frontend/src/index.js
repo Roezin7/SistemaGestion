@@ -7,6 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import './axiosInterceptor';
 
+
 ReactDOM.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
