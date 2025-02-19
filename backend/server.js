@@ -55,7 +55,7 @@ app.get('/api/status', (req, res) => {
 });
 
 // 🚀 Servir el frontend correctamente 🚀
-const frontendPath = path.join(__dirname, '../frontend/build');
+const frontendPath = path.join(__dirname, '../frontend/gestion-tramites-frontend/build');
 app.use(express.static(frontendPath));
 
 // ✅ Nueva ruta catch-all: SOLO redirige al frontend si no es una solicitud API
