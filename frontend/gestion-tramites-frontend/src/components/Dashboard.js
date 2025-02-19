@@ -62,7 +62,7 @@ const Dashboard = () => {
 
   // Función para obtener KPI (useCallback para no redefinirla en cada render)
   const fetchKpis = useCallback(() => {
-    axios.get('http://localhost:5000/api/kpis', { params: dateRange })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
       .then(response => setKpis(response.data))
       .catch(error => console.error('Error al cargar KPI:', error));
   }, [dateRange]);
