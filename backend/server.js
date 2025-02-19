@@ -51,11 +51,14 @@ app.get('/', (req, res) => {
 });
 
 // 🚀 Servir el frontend correctamente 🚀
-const frontendPath = path.join(__dirname, '../frontend/gestion-tramites-frontend/build');
+const frontendPath = path.join(__dirname, '../frontend/build');
 app.use(express.static(frontendPath));
 
-// Ruta catch-all para devolver el index.html del frontend en cualquier ruta no manejada por la API
-app.get('*', (req, res) => {
+// ✅ Nueva ruta catch-all: SOLO redirige al frontend si no es una solicitud API
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next(); // No redirigir si la ruta comienza con /api/
+  }
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
