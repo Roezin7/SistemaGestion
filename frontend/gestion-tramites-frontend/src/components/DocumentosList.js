@@ -17,7 +17,7 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
   }, [clienteId, refreshFlag]);
 
   const handleRename = (docId) => {
-    axios.put(`http://localhost:5000/api/clientes/documentos/${docId}`, { nuevoNombre })
+    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/documentos/${docId}`, { nuevoNombre })
       .then(response => {
         setEditDocId(null);
         onRefresh();
@@ -26,7 +26,7 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
   };
 
   const handleDelete = (docId) => {
-    axios.delete(`http://localhost:5000/api/clientes/documentos/${docId}`)
+    axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/documentos/${docId}`)
       .then(response => onRefresh())
       .catch(error => console.error('Error al eliminar documento:', error));
   };
@@ -58,7 +58,7 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
                   </TableCell>
                   <TableCell>
                     <a 
-                      href={`http://localhost:5000/api/documentos/${filename}`} 
+                      href={`https://sistemagestion-pk62.onrender.com/api/documentos/${filename}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
