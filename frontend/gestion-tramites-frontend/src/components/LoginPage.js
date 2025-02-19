@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
+import { API_URL } from '../config'; // ✅ Importar API_URL
 import logo from '../assets/newlogo.png'; // Asegúrate de que el logo esté en src/assets/logo.png
 
 const LoginPage = ({ onLoginSuccess }) => {
@@ -11,12 +12,14 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', { username, password });
+      console.log("Enviando solicitud a:", `${API_URL}/api/auth/login`); // 🔍 Debug
+      const response = await axios.post(`${API_URL}/api/auth/login`, { username, password });
       if (response.data.success) {
         onLoginSuccess();
       }
     } catch (err) {
       setError('Credenciales incorrectas');
+      console.error("Error en login:", err.response ? err.response.data : err);
     }
   };
 
