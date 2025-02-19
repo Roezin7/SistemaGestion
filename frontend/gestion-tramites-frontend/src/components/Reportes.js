@@ -24,14 +24,14 @@ const Reportes = () => {
 
   const handleBuscar = () => {
     // 1. Cargar transacciones
-    axios.get('http://localhost:5000/api/finanzas/reportes', {
+    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/reportes', {
       params: { fechaInicio, fechaFin }
     })
       .then(response => setDatos(response.data))
       .catch(error => console.error('Error al cargar reportes:', error));
 
     // 2. Cargar KPI
-    axios.get('http://localhost:5000/api/kpis', {
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
       params: { fechaInicio, fechaFin }
     })
       .then(response => setKpis(response.data))

@@ -69,7 +69,7 @@ const Dashboard = () => {
 
   // Función para obtener datos de las gráficas
   const fetchChartData = useCallback(() => {
-    axios.get('http://localhost:5000/api/kpis/chart', { params: dateRange })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', { params: dateRange })
       .then(response => {
         // Ingresos / Egresos
         setChartDataIngresos({

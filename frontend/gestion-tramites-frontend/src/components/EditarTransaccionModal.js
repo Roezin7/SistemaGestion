@@ -23,14 +23,14 @@ const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdat
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/clientes')
+    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
       .then(response => setClients(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   }, []);
 
   const handleGuardar = async () => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/finanzas/${transaccion.id}`, {
+      const response = await axios.put(`https://sistemagestion-pk62.onrender.com/api/finanzas/${transaccion.id}`, {
         tipo,
         concepto,
         fecha,

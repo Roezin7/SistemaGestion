@@ -11,7 +11,7 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
   const [nuevoNombre, setNuevoNombre] = useState('');
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/clientes/${clienteId}/documentos`)
+    axios.get(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}/documentos`)
       .then(response => setDocumentos(response.data))
       .catch(error => console.error('Error al cargar documentos:', error));
   }, [clienteId, refreshFlag]);

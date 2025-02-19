@@ -42,7 +42,7 @@ const EditarClienteModal = ({ open, onClose, cliente, onClienteActualizado }) =>
   };
 
   const handleGuardar = () => {
-    axios.put(`http://localhost:5000/api/clientes/${cliente.id}`, formData)
+    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, formData)
       .then(response => {
         onClienteActualizado(response.data);
         onClose();

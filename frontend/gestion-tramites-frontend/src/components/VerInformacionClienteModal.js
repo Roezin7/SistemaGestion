@@ -29,7 +29,7 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
       setCostoTotal(cliente.costo_total_tramite || 0);
 
       // Cargar historial de abonos
-      axios.get(`http://localhost:5000/api/finanzas/abonos/${cliente.id}`)
+      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`)
         .then(response => setAbonosData(response.data))
         .catch(error => console.error('Error al cargar abonos:', error));
     }
@@ -38,7 +38,7 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
   // Actualizar el costo total
   const handleGuardarCosto = () => {
     if (!cliente) return;
-    axios.put(`http://localhost:5000/api/clientes/${cliente.id}`, {
+    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, {
       ...cliente,
       costo_total_tramite: costoTotal
     })

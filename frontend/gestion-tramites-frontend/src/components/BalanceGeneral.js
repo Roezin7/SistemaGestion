@@ -20,7 +20,7 @@ const BalanceGeneral = () => {
   // La dependencia es "dateRange" para que se actualice cuando cambien las fechas.
   const fetchBalance = useCallback(() => {
     axios
-      .get('http://localhost:5000/api/kpis', { params: dateRange })
+      .get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
       .then((response) => setBalance(response.data.balance_general))
       .catch((error) => console.error('Error al cargar balance:', error));
   }, [dateRange]);

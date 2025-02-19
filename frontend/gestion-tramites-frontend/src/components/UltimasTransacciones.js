@@ -36,7 +36,7 @@ const UltimasTransacciones = () => {
 
   // Cargar transacciones desde el backend
   const cargarTransacciones = () => {
-    axios.get('http://localhost:5000/api/finanzas/ultimas', { params: dateRange })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/ultimas', { params: dateRange })
       .then(response => setTransacciones(response.data))
       .catch(error => console.error('Error al cargar transacciones:', error));
   };
@@ -53,7 +53,7 @@ const UltimasTransacciones = () => {
   // Eliminar transacción
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
-      axios.delete(`http://localhost:5000/api/finanzas/${id}`)
+      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`)
         .then(() => {
           // Recargar transacciones tras borrar
           cargarTransacciones();

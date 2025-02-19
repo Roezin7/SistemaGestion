@@ -16,7 +16,7 @@ const DocumentosUpload = ({ clienteId }) => {
     for (let i = 0; i < archivos.length; i++) {
       formData.append('documentos', archivos[i]);
     }
-    axios.post(`http://localhost:5000/api/clientes/${clienteId}/documentos`, formData)
+    axios.post(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}/documentos`, formData)
       .then(response => alert('Documentos subidos exitosamente'))
       .catch(error => console.error('Error al subir documentos:', error));
   };

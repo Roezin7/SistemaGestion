@@ -39,7 +39,7 @@ const ClientesPage = () => {
   }, []);
 
   const cargarClientes = () => {
-    axios.get('http://localhost:5000/api/clientes')
+    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
       .then(response => setClientes(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   };
@@ -79,7 +79,7 @@ const ClientesPage = () => {
 
   const handleDeleteCliente = (clienteId) => {
     if (window.confirm('¿Seguro que desea eliminar este cliente?')) {
-      axios.delete(`http://localhost:5000/api/clientes/${clienteId}`)
+      axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}`)
         .then(() => {
           setClientes(clientes.filter(c => c.id !== clienteId));
         })

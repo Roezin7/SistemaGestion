@@ -6,7 +6,7 @@ const ClientesList = () => {
   const [clientes, setClientes] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/clientes')
+    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
       .then(response => setClientes(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   }, []);

@@ -15,7 +15,7 @@ const FinanzasForm = () => {
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/clientes')
+    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
       .then(response => setClients(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   }, []);
@@ -26,7 +26,7 @@ const FinanzasForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:5000/api/finanzas', formData)
+    axios.post('https://sistemagestion-pk62.onrender.com/api/finanzas', formData)
       .then(response => {
         alert('Transacción guardada');
         setFormData({ tipo: 'ingreso', concepto: '', fecha: '', monto: '', client_id: '' });

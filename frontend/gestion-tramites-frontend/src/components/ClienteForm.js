@@ -18,7 +18,7 @@ const ClienteForm = ({ onClienteAgregado }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:5000/api/clientes', formData)
+    axios.post('https://sistemagestion-pk62.onrender.com/api/clientes', formData)
       .then(response => {
         onClienteAgregado(response.data);
         setFormData({ nombre: '', integrantes: '', numeroRecibo: '', estadoTramite: 'Recepción de documentos', fecha_inicio_tramite: '' });
