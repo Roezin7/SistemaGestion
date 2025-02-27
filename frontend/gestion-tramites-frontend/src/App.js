@@ -1,11 +1,12 @@
 // src/App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, AppBar, Tabs, Tab, Box, Toolbar, Typography } from '@mui/material';
 import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
 import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
 import LoginPage from './components/LoginPage';
+import AdminBanner from './components/AdminBanner';
 import { AccountCircle, Dashboard as DashboardIcon, AttachMoney, Assessment } from '@mui/icons-material';
 import logo from './assets/newlogo.png';
 import leaderLogo from './assets/leaderlogo.png';
@@ -29,14 +30,38 @@ function TabPanel(props) {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const handleTabChange = (event, newIndex) => {
     setTabIndex(newIndex);
   };
 
-  // Si el usuario no está autenticado, se muestra la pantalla de login
+  const handleAdminOption = (option) => {
+    if (option === 'historial') {
+      // Aquí puedes abrir un modal o navegar a una página que muestre el historial de cambios totales en el sistema
+      alert("Mostrar Historial de Cambios del Sistema");
+    } else if (option === 'usuarios') {
+      // Aquí puedes abrir una página o modal para administrar usuarios (agregar, eliminar, modificar roles)
+      alert("Mostrar Administración de Usuarios y Roles");
+    }
+  };
+
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return <LoginPage onLoginSuccess={() => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+      setIsAuthenticated(true);
+    }} />;
   }
 
   return (
@@ -44,9 +69,13 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
-          <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
+          {/* Si el usuario es administrador, mostramos el menú adicional */}
+          {user && user.rol === 'admin' && (
+            <AdminBanner onSelectOption={handleAdminOption} />
+          )}
           <img src={leaderLogo} alt="LEADER" style={{ height: 20 }} />
         </Toolbar>
       </AppBar>
