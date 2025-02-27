@@ -9,7 +9,7 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
-  const [showRegister, setShowRegister] = useState(false); // Controla la visibilidad del formulario de registro
+  const [showRegister, setShowRegister] = useState(false);
   const [registerData, setRegisterData] = useState({ nombre: '', username: '', password: '' });
   const [registerError, setRegisterError] = useState('');
 
@@ -122,7 +122,11 @@ const LoginPage = ({ onLoginSuccess }) => {
 
             {/* Botón para mostrar/ocultar el formulario de registro */}
             <Box mt={2}>
-              <Button variant="text" color="secondary" onClick={() => setShowRegister(!showRegister)}>
+              <Button 
+                variant="text" 
+                color="secondary" 
+                onClick={() => setShowRegister((prev) => !prev)} // 🔹 Se asegura de cambiar el estado
+              >
                 {showRegister ? "Ocultar Registro" : "¿No tienes cuenta? Regístrate"}
               </Button>
             </Box>
