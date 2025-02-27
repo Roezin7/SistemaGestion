@@ -7,6 +7,8 @@ import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
 import LoginPage from './components/LoginPage';
 import AdminBanner from './components/AdminBanner';
+import HistorialModal from './components/HistorialModal';
+import AdminUsuariosModal from './components/AdminUsuariosModal';
 import { AccountCircle, Dashboard as DashboardIcon, AttachMoney, Assessment } from '@mui/icons-material';
 import logo from './assets/newlogo.png';
 import leaderLogo from './assets/leaderlogo.png';
@@ -31,6 +33,8 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [user, setUser] = useState(null);
+  const [openHistorial, setOpenHistorial] = useState(false);
+  const [openAdminUsuarios, setOpenAdminUsuarios] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -46,11 +50,9 @@ function App() {
 
   const handleAdminOption = (option) => {
     if (option === 'historial') {
-      // Aquí puedes abrir un modal o navegar a una página que muestre el historial de cambios totales
-      alert("Mostrar Historial de Cambios del Sistema");
+      setOpenHistorial(true);
     } else if (option === 'usuarios') {
-      // Aquí puedes abrir una página o modal para administrar usuarios (agregar, eliminar, modificar roles)
-      alert("Mostrar Administración de Usuarios y Roles");
+      setOpenAdminUsuarios(true);
     }
   };
 
@@ -62,15 +64,13 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return (
-      <LoginPage onLoginSuccess={() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-        setIsAuthenticated(true);
-      }} />
-    );
+    return <LoginPage onLoginSuccess={() => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+      setIsAuthenticated(true);
+    }} />;
   }
 
   return (
@@ -78,10 +78,10 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
-          <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
-          {/* Si el usuario es administrador, mostramos el menú adicional */}
+          {/* Si el usuario es admin, mostramos el menú de administración */}
           {user && user.rol === 'admin' && (
             <AdminBanner onSelectOption={handleAdminOption} />
           )}
@@ -109,6 +109,10 @@ function App() {
       <TabPanel value={tabIndex} index={3}>
         <ReportesPage />
       </TabPanel>
+      
+      {/* Modales para administración */}
+      <HistorialModal open={openHistorial} onClose={() => setOpenHistorial(false)} />
+      <AdminUsuariosModal open={openAdminUsuarios} onClose={() => setOpenAdminUsuarios(false)} />
     </Container>
   );
 }
