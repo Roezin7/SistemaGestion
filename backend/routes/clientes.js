@@ -5,6 +5,7 @@ const db = require('../db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { registrarHistorial } = require('../utils/historial');
 
 // Configuración de multer para la carga de archivos
 const storage = multer.diskStorage({
@@ -31,18 +32,20 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { nombre, integrantes, numeroRecibo, estadoTramite } = req.body;
   try {
-    // Se establece la fecha de inicio de trámite con NOW() y el costo_total_tramite como NULL
     const result = await db.query(
       'INSERT INTO clientes (nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite, costo_total_tramite) VALUES ($1, $2, $3, $4, NOW(), NULL) RETURNING *',
       [nombre, integrantes, numeroRecibo, estadoTramite]
     );
-    res.json(result.rows[0]);
+    const nuevoCliente = result.rows[0];
+    // Registrar el cambio en el historial
+    await registrarHistorial(req, `Se agregó un nuevo cliente con id ${nuevoCliente.id}`);
+    res.json(nuevoCliente);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT: Actualizar datos de un cliente (convertir cadenas vacías a null en campos de fecha)
+// PUT: Actualizar datos de un cliente
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   let {
@@ -56,7 +59,6 @@ router.put('/:id', async (req, res) => {
     costo_total_tramite
   } = req.body;
 
-  // Convertir cadenas vacías a null para los campos de fecha
   fecha_cita_cas = fecha_cita_cas === "" ? null : fecha_cita_cas;
   fecha_cita_consular = fecha_cita_consular === "" ? null : fecha_cita_consular;
   fecha_inicio_tramite = fecha_inicio_tramite === "" ? null : fecha_inicio_tramite;
@@ -85,7 +87,9 @@ router.put('/:id', async (req, res) => {
         id
       ]
     );
-    res.json(result.rows[0]);
+    const clienteActualizado = result.rows[0];
+    await registrarHistorial(req, `Se actualizó el cliente con id ${id}`);
+    res.json(clienteActualizado);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -96,13 +100,14 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM clientes WHERE id = $1', [id]);
+    await registrarHistorial(req, `Se eliminó el cliente con id ${id}`);
     res.json({ message: 'Cliente eliminado correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST: Subir documentación para un cliente (múltiples archivos)
+// POST: Subir documentación para un cliente
 router.post('/:id/documentos', upload.array('documentos', 5), async (req, res) => {
   const { id } = req.params;
   const archivos = req.files;
@@ -113,6 +118,7 @@ router.post('/:id/documentos', upload.array('documentos', 5), async (req, res) =
         [id, archivo.path, archivo.originalname]
       );
     }
+    await registrarHistorial(req, `Se subieron documentos para el cliente con id ${id}`);
     res.json({ message: 'Documentos subidos correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -128,6 +134,7 @@ router.put('/documentos/:docId', async (req, res) => {
       'UPDATE documentos_cliente SET nombre_archivo = $1 WHERE id = $2 RETURNING *',
       [nuevoNombre, docId]
     );
+    await registrarHistorial(req, `Se renombró el documento con id ${docId} a "${nuevoNombre}"`);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -147,6 +154,7 @@ router.delete('/documentos/:docId', async (req, res) => {
       fs.unlinkSync(documento.ruta_archivo);
     }
     await db.query('DELETE FROM documentos_cliente WHERE id = $1', [docId]);
+    await registrarHistorial(req, `Se eliminó el documento con id ${docId}`);
     res.json({ message: 'Documento eliminado correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });

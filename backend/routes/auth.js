@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
 });
 
 // 🚀 Obtener el historial de cambios totales del sistema (solo admin)
-// Este historial debe registrar acciones críticas realizadas (como agregar, borrar o modificar clientes, etc.)
+// Este historial debe registrar acciones críticas realizadas (como agregar, borrar o modificar clientes, transacciones, etc.)
 router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
@@ -86,6 +86,29 @@ router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Error al obtener el historial de cambios' });
+  }
+});
+
+// 🚀 Eliminar un registro del historial (solo admin)
+router.delete('/historial/:id', verificarToken, verificarAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM historial_cambios WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Registro del historial eliminado' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al eliminar el registro del historial' });
+  }
+});
+
+// 🚀 Eliminar todo el historial (solo admin)
+router.delete('/historial', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    await db.query('DELETE FROM historial_cambios');
+    res.json({ success: true, message: 'Historial eliminado correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al eliminar el historial' });
   }
 });
 

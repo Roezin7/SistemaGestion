@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { registrarHistorial } = require('../utils/historial');
 
 // Registrar un ingreso, egreso, abono o retiro
 router.post('/', async (req, res) => {
@@ -11,7 +12,9 @@ router.post('/', async (req, res) => {
       'INSERT INTO finanzas (tipo, concepto, fecha, monto, client_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [tipo, concepto, fecha, monto, client_id || null]
     );
-    res.json(result.rows[0]);
+    const nuevaTransaccion = result.rows[0];
+    await registrarHistorial(req, `Se registró una transacción (${tipo}) con id ${nuevaTransaccion.id}`);
+    res.json(nuevaTransaccion);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -37,7 +40,7 @@ router.get('/reportes', async (req, res) => {
   }
 });
 
-// Obtener las últimas transacciones (los 10 más recientes)
+// Obtener las últimas transacciones
 router.get('/ultimas', async (req, res) => {
   try {
     const result = await db.query(
@@ -72,6 +75,7 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM finanzas WHERE id = $1', [id]);
+    await registrarHistorial(req, `Se eliminó la transacción con id ${id}`);
     res.json({ message: 'Transacción eliminada correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -90,6 +94,7 @@ router.put('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Transacción no encontrada' });
     }
+    await registrarHistorial(req, `Se actualizó la transacción con id ${id}`);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
