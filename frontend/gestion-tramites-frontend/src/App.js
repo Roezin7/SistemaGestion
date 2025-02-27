@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import { Container, AppBar, Tabs, Tab, Box, Toolbar, Typography } from '@mui/material';
+import { Container, AppBar, Tabs, Tab, Box, Toolbar, Typography, Button } from '@mui/material';
 import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
 import FinanzasPage from './components/FinanzasPage';
@@ -46,7 +46,7 @@ function App() {
 
   const handleAdminOption = (option) => {
     if (option === 'historial') {
-      // Aquí puedes abrir un modal o navegar a una página que muestre el historial de cambios totales en el sistema
+      // Aquí puedes abrir un modal o navegar a una página que muestre el historial de cambios totales
       alert("Mostrar Historial de Cambios del Sistema");
     } else if (option === 'usuarios') {
       // Aquí puedes abrir una página o modal para administrar usuarios (agregar, eliminar, modificar roles)
@@ -54,14 +54,23 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
-      setIsAuthenticated(true);
-    }} />;
+    return (
+      <LoginPage onLoginSuccess={() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+        setIsAuthenticated(true);
+      }} />
+    );
   }
 
   return (
@@ -69,14 +78,17 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
-          <Typography variant="h6" style={{ flexGrow: 1 }}>
+          <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
           {/* Si el usuario es administrador, mostramos el menú adicional */}
           {user && user.rol === 'admin' && (
             <AdminBanner onSelectOption={handleAdminOption} />
           )}
-          <img src={leaderLogo} alt="LEADER" style={{ height: 20 }} />
+          <Button variant="outlined" color="inherit" onClick={handleLogout} sx={{ ml: 2 }}>
+            Cerrar Sesión
+          </Button>
+          <img src={leaderLogo} alt="LEADER" style={{ height: 20, marginLeft: 16 }} />
         </Toolbar>
       </AppBar>
       <Tabs value={tabIndex} onChange={handleTabChange} aria-label="tabs">
