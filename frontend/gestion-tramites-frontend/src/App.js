@@ -78,7 +78,7 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <img src={logo} alt="Logo" style={{ height: 60, marginRight: 16 }} />
-          <Typography variant="h6" style={{ flexGrow: 1 }}>
+          <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
           {/* Si el usuario es admin, mostramos el menú de administración */}
