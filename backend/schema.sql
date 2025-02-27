@@ -1,4 +1,22 @@
-DROP TABLE IF EXISTS finanzas, documentos_cliente, clientes CASCADE;
+DROP TABLE IF EXISTS usuarios, finanzas, documentos_cliente, clientes CASCADE;
+
+-- Crear tabla de usuarios
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password TEXT NOT NULL, -- Debe almacenarse encriptada
+    rol VARCHAR(50) DEFAULT 'usuario', -- Puede ser 'admin' o 'usuario'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Crear tabla de historial_cambios
+CREATE TABLE historial_cambios (
+    id SERIAL PRIMARY KEY,
+    usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+    descripcion TEXT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Crear tabla de clientes
 CREATE TABLE IF NOT EXISTS clientes (
