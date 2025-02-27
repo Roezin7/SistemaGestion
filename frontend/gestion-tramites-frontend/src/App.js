@@ -88,7 +88,6 @@ function App() {
           <Button variant="outlined" color="inherit" onClick={handleLogout} sx={{ ml: 2 }}>
             Cerrar Sesión
           </Button>
-          <img src={leaderLogo} alt="LEADER" style={{ height: 20, marginLeft: 16 }} />
         </Toolbar>
       </AppBar>
       <Tabs value={tabIndex} onChange={handleTabChange} aria-label="tabs">
@@ -113,6 +112,11 @@ function App() {
       {/* Modales para administración */}
       <HistorialModal open={openHistorial} onClose={() => setOpenHistorial(false)} />
       <AdminUsuariosModal open={openAdminUsuarios} onClose={() => setOpenAdminUsuarios(false)} />
+
+      {/* Footer con el logo LEADER */}
+      <Box sx={{ mt: 4, textAlign: 'center', py: 2, borderTop: '1px solid #ccc' }}>
+        <img src={leaderLogo} alt="LEADER" style={{ height: 20 }} />
+      </Box>
     </Container>
   );
 }
