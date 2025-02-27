@@ -6,7 +6,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
-const { verificarToken } = require('../middleware'); // Asegúrate de tener este middleware
 
 // Configuración de multer para la carga de archivos
 const storage = multer.diskStorage({
@@ -19,7 +18,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET: Obtener todos los clientes (público)
+// GET: Obtener todos los clientes
 router.get('/', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM clientes');
@@ -29,8 +28,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Agregar un nuevo cliente - Protegido
-router.post('/', verificarToken, async (req, res) => {
+// POST: Agregar un nuevo cliente
+router.post('/', async (req, res) => {
   const { nombre, integrantes, numeroRecibo, estadoTramite } = req.body;
   try {
     const result = await db.query(
@@ -38,6 +37,7 @@ router.post('/', verificarToken, async (req, res) => {
       [nombre, integrantes, numeroRecibo, estadoTramite]
     );
     const nuevoCliente = result.rows[0];
+    // Registrar el cambio en el historial
     await registrarHistorial(req, `Se agregó un nuevo cliente con id ${nuevoCliente.id}`);
     res.json(nuevoCliente);
   } catch (err) {
@@ -45,8 +45,8 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// PUT: Actualizar datos de un cliente - Protegido
-router.put('/:id', verificarToken, async (req, res) => {
+// PUT: Actualizar datos de un cliente
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   let {
     nombre,
@@ -95,8 +95,8 @@ router.put('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// DELETE: Eliminar un cliente - Protegido
-router.delete('/:id', verificarToken, async (req, res) => {
+// DELETE: Eliminar un cliente
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM clientes WHERE id = $1', [id]);
@@ -107,8 +107,8 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// POST: Subir documentación para un cliente - Protegido
-router.post('/:id/documentos', verificarToken, upload.array('documentos', 5), async (req, res) => {
+// POST: Subir documentación para un cliente
+router.post('/:id/documentos', upload.array('documentos', 5), async (req, res) => {
   const { id } = req.params;
   const archivos = req.files;
   try {
@@ -125,8 +125,8 @@ router.post('/:id/documentos', verificarToken, upload.array('documentos', 5), as
   }
 });
 
-// PUT: Renombrar un documento - Protegido
-router.put('/documentos/:docId', verificarToken, async (req, res) => {
+// PUT: Renombrar un documento
+router.put('/documentos/:docId', async (req, res) => {
   const { docId } = req.params;
   const { nuevoNombre } = req.body;
   try {
@@ -141,8 +141,8 @@ router.put('/documentos/:docId', verificarToken, async (req, res) => {
   }
 });
 
-// DELETE: Eliminar un documento - Protegido
-router.delete('/documentos/:docId', verificarToken, async (req, res) => {
+// DELETE: Eliminar un documento
+router.delete('/documentos/:docId', async (req, res) => {
   const { docId } = req.params;
   try {
     const docResult = await db.query('SELECT * FROM documentos_cliente WHERE id = $1', [docId]);
@@ -161,7 +161,7 @@ router.delete('/documentos/:docId', verificarToken, async (req, res) => {
   }
 });
 
-// GET: Obtener documentos para un cliente (público)
+// GET: Obtener documentos para un cliente
 router.get('/:id/documentos', async (req, res) => {
   const { id } = req.params;
   try {

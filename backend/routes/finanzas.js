@@ -3,11 +3,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
-// Se asume que tienes el middleware de autenticación en un archivo, por ejemplo:
-const { verificarToken } = require('../middleware'); // Asegúrate de tenerlo definido
 
-// Registrar una transacción (ingreso, egreso, abono o retiro) - Protegido
-router.post('/', verificarToken, async (req, res) => {
+// Registrar un ingreso, egreso, abono o retiro
+router.post('/', async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id } = req.body;
   try {
     const result = await db.query(
@@ -22,7 +20,7 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// Obtener reportes financieros con filtros de fecha (público o protegido según necesidad)
+// Obtener reportes financieros con filtros de fecha
 router.get('/reportes', async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio || fechaInicio.trim() === '') {
@@ -42,7 +40,7 @@ router.get('/reportes', async (req, res) => {
   }
 });
 
-// Obtener las últimas transacciones (los 10 más recientes) (público)
+// Obtener las últimas transacciones
 router.get('/ultimas', async (req, res) => {
   try {
     const result = await db.query(
@@ -54,7 +52,7 @@ router.get('/ultimas', async (req, res) => {
   }
 });
 
-// Obtener historial de abonos para un cliente (público o protegido según necesidad)
+// Obtener historial de abonos para un cliente
 router.get('/abonos/:clientId', async (req, res) => {
   const { clientId } = req.params;
   try {
@@ -72,8 +70,8 @@ router.get('/abonos/:clientId', async (req, res) => {
   }
 });
 
-// Eliminar una transacción - Protegido
-router.delete('/:id', verificarToken, async (req, res) => {
+// Eliminar una transacción
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM finanzas WHERE id = $1', [id]);
@@ -84,8 +82,8 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// Editar una transacción existente - Protegido
-router.put('/:id', verificarToken, async (req, res) => {
+// Editar una transacción existente
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { tipo, concepto, fecha, monto, client_id } = req.body;
   try {
