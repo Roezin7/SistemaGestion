@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db'); // Conexión a la base de datos
+const { registrarHistorial } = require('../utils/historial'); // Función auxiliar
 const router = express.Router();
 
 const SECRET_KEY = process.env.SECRET_KEY || "clave_secreta"; // Cambiar en producción
@@ -47,6 +48,11 @@ router.post('/register', async (req, res) => {
       'INSERT INTO usuarios (nombre, username, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, username, rol',
       [nombre, username, hashedPassword, rol || 'usuario']
     );
+    // Para registro, req.user no existe, así que se deja usuario_id nulo o se puede registrar "Sistema"
+    await db.query(
+      'INSERT INTO historial_cambios (usuario_id, descripcion) VALUES ($1, $2)',
+      [null, `Se registró el usuario "${username}" con rol ${rol || 'usuario'}`]
+    );
     res.status(201).json({ success: true, user: result.rows[0] });
   } catch (error) {
     console.error(error);
@@ -76,7 +82,6 @@ router.post('/login', async (req, res) => {
 });
 
 // 🚀 Obtener el historial de cambios totales del sistema (solo admin)
-// Este historial debe registrar acciones críticas realizadas (como agregar, borrar o modificar clientes, transacciones, etc.)
 router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
@@ -135,6 +140,7 @@ router.put('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) => 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
+    await registrarHistorial(req, `Se actualizó el rol del usuario con id ${id} a ${rol}`);
     res.json({ success: true, usuario: result.rows[0] });
   } catch (error) {
     console.error(error);
@@ -147,6 +153,7 @@ router.delete('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) 
   const { id } = req.params;
   try {
     await db.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    await registrarHistorial(req, `Se eliminó el usuario con id ${id}`);
     res.json({ success: true, message: 'Usuario eliminado' });
   } catch (error) {
     console.error(error);
