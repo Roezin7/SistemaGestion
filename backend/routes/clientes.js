@@ -6,7 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
-const { verificarToken } = require('../routes/auth'); // Reutilizamos el middleware de auth
+const { verificarToken } = require('../routes/auth'); // Usamos el middleware de auth
 
 // Configuración de multer para la carga de archivos
 const storage = multer.diskStorage({
@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET: Obtener todos los clientes (se deja público)
+// GET: Obtener todos los clientes (público)
 router.get('/', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM clientes');
@@ -161,7 +161,7 @@ router.delete('/documentos/:docId', verificarToken, async (req, res) => {
   }
 });
 
-// GET: Obtener documentos para un cliente (se puede dejar público)
+// GET: Obtener documentos para un cliente (público)
 router.get('/:id/documentos', async (req, res) => {
   const { id } = req.params;
   try {

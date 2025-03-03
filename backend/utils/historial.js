@@ -1,12 +1,13 @@
-// utils/historial.js
+// backend/utils/historial.js
 const db = require('../db');
 
 async function registrarHistorial(req, descripcion) {
   try {
-    // Se asume que el middleware de autenticación ha puesto en req.user el usuario actual.
+    // Si req.user está definido, se utiliza su id; de lo contrario, se registra como "Sistema" (usuario_id nulo)
+    const usuarioId = req.user && req.user.id ? req.user.id : null;
     await db.query(
       'INSERT INTO historial_cambios (usuario_id, descripcion) VALUES ($1, $2)',
-      [req.user ? req.user.id : null, descripcion]
+      [usuarioId, descripcion]
     );
   } catch (error) {
     console.error("Error registrando historial:", error);

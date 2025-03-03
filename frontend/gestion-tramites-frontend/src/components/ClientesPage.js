@@ -1,4 +1,3 @@
-// src/components/ClientesPage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -79,7 +78,9 @@ const ClientesPage = () => {
 
   const handleDeleteCliente = (clienteId) => {
     if (window.confirm('¿Seguro que desea eliminar este cliente?')) {
-      axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}`)
+      axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
         .then(() => {
           setClientes(clientes.filter(c => c.id !== clienteId));
         })
@@ -89,7 +90,6 @@ const ClientesPage = () => {
 
   return (
     <Box p={2}>
-      {/* CAMBIO: Título con negritas */}
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Clientes
       </Typography>
@@ -112,14 +112,12 @@ const ClientesPage = () => {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              {/* CAMBIO: Fila de encabezado con fondo azul y texto blanco negritas */}
               <TableRow sx={{ backgroundColor: '#06588a' }}>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>
                   <TableSortLabel
                     sx={{
                       color: 'white',
                       fontWeight: 'bold',
-                      // CAMBIO: Asegurar color del ícono
                       '& .MuiTableSortLabel-icon': {
                         color: 'white !important'
                       }
@@ -181,7 +179,6 @@ const ClientesPage = () => {
                 .map(cliente => (
                   <TableRow key={cliente.id}>
                     <TableCell>{cliente.numero_recibo}</TableCell>
-                    {/* CAMBIO: Nombre en negritas */}
                     <TableCell>
                       <strong>{cliente.nombre}</strong>
                     </TableCell>

@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db'); // Conexión a la base de datos
-const { registrarHistorial } = require('../utils/historial'); // Función auxiliar
+const { registrarHistorial } = require('../utils/historial');
 const router = express.Router();
 
 const SECRET_KEY = process.env.SECRET_KEY || "clave_secreta"; // Cambiar en producción
@@ -12,7 +12,6 @@ const SECRET_KEY = process.env.SECRET_KEY || "clave_secreta"; // Cambiar en prod
 const verificarToken = (req, res, next) => {
   let token = req.header('Authorization');
   if (!token) return res.status(401).json({ success: false, message: 'Acceso denegado' });
-  // Permitir el prefijo "Bearer " si está presente
   if (token.startsWith('Bearer ')) {
     token = token.slice(7).trim();
   }
@@ -48,11 +47,8 @@ router.post('/register', async (req, res) => {
       'INSERT INTO usuarios (nombre, username, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, username, rol',
       [nombre, username, hashedPassword, rol || 'usuario']
     );
-    // Para registro, req.user no existe, así que se deja usuario_id nulo o se puede registrar "Sistema"
-    await db.query(
-      'INSERT INTO historial_cambios (usuario_id, descripcion) VALUES ($1, $2)',
-      [null, `Se registró el usuario "${username}" con rol ${rol || 'usuario'}`]
-    );
+    // Como en el registro no hay usuario autenticado, registramos el evento sin usuario (o se puede asignar un valor predeterminado)
+    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rol || 'usuario'}`);
     res.status(201).json({ success: true, user: result.rows[0] });
   } catch (error) {
     console.error(error);
