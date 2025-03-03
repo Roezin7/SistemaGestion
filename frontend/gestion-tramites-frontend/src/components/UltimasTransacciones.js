@@ -137,7 +137,7 @@ const UltimasTransacciones = () => {
                 <TableCell>{tran.id}</TableCell>
                 <TableCell><strong>{tran.tipo}</strong></TableCell>
                 <TableCell>{tran.concepto}</TableCell>
-                <TableCell>{tran.fecha}</TableCell>
+                <TableCell>{new Date(tran.fecha).toISOString().slice(0, 19).replace('T', ' ')}</TableCell>
                 <TableCell>
                   {currencyFormatter.format(parseFloat(tran.monto))}
                 </TableCell>
