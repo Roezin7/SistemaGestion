@@ -18,12 +18,11 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import axios from 'axios';
-import { getDefaultDateRange } from '../utils/dateUtils';      // Función para definir rango de fechas
-import { currencyFormatter } from '../utils/formatUtils';      // Formateador de montos en USD
-import EditarTransaccionModal from './EditarTransaccionModal';  // Nuevo componente para editar transacciones
+import { getDefaultDateRange } from '../utils/dateUtils';
+import { currencyFormatter } from '../utils/formatUtils';
+import EditarTransaccionModal from './EditarTransaccionModal';
 
 const UltimasTransacciones = () => {
-  // Fechas por defecto: mes actual
   const defaultRange = getDefaultDateRange();
   const [dateRange, setDateRange] = useState({
     fechaInicio: defaultRange.fechaInicio,
@@ -34,7 +33,6 @@ const UltimasTransacciones = () => {
   const [selectedTransaccion, setSelectedTransaccion] = useState(null);
   const [openEditarModal, setOpenEditarModal] = useState(false);
 
-  // Cargar transacciones desde el backend
   const cargarTransacciones = () => {
     axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/ultimas', { params: dateRange })
       .then(response => setTransacciones(response.data))
@@ -50,27 +48,23 @@ const UltimasTransacciones = () => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
   };
 
-  // Eliminar transacción (se añade header de autorización)
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
       axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       })
         .then(() => {
-          // Recargar transacciones tras borrar
           cargarTransacciones();
         })
         .catch(error => console.error('Error al eliminar transacción:', error));
     }
   };
 
-  // Abrir el modal de edición para una transacción
   const handleEditTransaccion = (tran) => {
     setSelectedTransaccion(tran);
     setOpenEditarModal(true);
   };
 
-  // Cerrar el modal de edición y refrescar la lista
   const handleCloseEditarModal = () => {
     setOpenEditarModal(false);
     setSelectedTransaccion(null);
@@ -82,8 +76,6 @@ const UltimasTransacciones = () => {
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
         Últimas Transacciones
       </Typography>
-
-      {/* Filtros de fecha */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={4}>
           <TextField
@@ -118,18 +110,16 @@ const UltimasTransacciones = () => {
           </Button>
         </Grid>
       </Grid>
-
-      {/* Tabla */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            {/* Encabezado con fondo azul y texto blanco en negritas */}
             <TableRow sx={{ backgroundColor: '#06588a' }}>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tipo</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Concepto</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
@@ -144,11 +134,9 @@ const UltimasTransacciones = () => {
                   {currencyFormatter.format(parseFloat(tran.monto))}
                 </TableCell>
                 <TableCell>
-                  {/* Botón para editar */}
                   <IconButton onClick={() => handleEditTransaccion(tran)}>
                     <EditIcon color="primary" />
                   </IconButton>
-                  {/* Botón para eliminar */}
                   <IconButton onClick={() => handleDeleteTransaccion(tran.id)}>
                     <DeleteIcon color="error" />
                   </IconButton>
@@ -157,7 +145,7 @@ const UltimasTransacciones = () => {
             ))}
             {transacciones.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   No hay transacciones en este rango de fechas
                 </TableCell>
               </TableRow>
@@ -165,8 +153,6 @@ const UltimasTransacciones = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* Modal para editar transacción */}
       {openEditarModal && selectedTransaccion && (
         <EditarTransaccionModal
           open={openEditarModal}

@@ -20,6 +20,7 @@ const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdat
   const [fecha, setFecha] = useState(transaccion.fecha);
   const [monto, setMonto] = useState(transaccion.monto);
   const [clientId, setClientId] = useState(transaccion.client_id);
+  const [formaPago, setFormaPago] = useState(transaccion.forma_pago || 'efectivo'); // NUEVO campo
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
@@ -36,6 +37,9 @@ const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdat
         fecha,
         monto,
         client_id: clientId,
+        forma_pago: formaPago  // Se envía la forma de pago
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       onTransaccionUpdated(response.data);
       onClose();
@@ -103,6 +107,19 @@ const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdat
                 {client.nombre} - {client.numero_recibo}
               </MenuItem>
             ))}
+          </Select>
+        </FormControl>
+        {/* NUEVO: Campo para Forma de Pago */}
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="forma-pago-label">Forma de Pago</InputLabel>
+          <Select
+            labelId="forma-pago-label"
+            label="Forma de Pago"
+            value={formaPago}
+            onChange={(e) => setFormaPago(e.target.value)}
+          >
+            <MenuItem value="efectivo">Efectivo</MenuItem>
+            <MenuItem value="transferencia">Transferencia</MenuItem>
           </Select>
         </FormControl>
         <Box mt={2} display="flex" justifyContent="flex-end" gap={1}>
