@@ -158,3 +158,4 @@ router.delete('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) 
 });
 
 module.exports = router;
+module.exports.verificarToken = verificarToken;
