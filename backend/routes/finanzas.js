@@ -74,7 +74,7 @@ router.get('/abonos/:clientId', async (req, res) => {
       [clientId]
     );
     const listResult = await db.query(
-      "SELECT id, tipo, concepto, fecha, monto FROM finanzas WHERE client_id = $1 ORDER BY fecha ASC",
+      "SELECT id, tipo, concepto, fecha, monto, forma_pago FROM finanzas WHERE client_id = $1 ORDER BY fecha ASC",
       [clientId]
     );
     res.json({ 
