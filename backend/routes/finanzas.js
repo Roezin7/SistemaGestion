@@ -43,9 +43,17 @@ router.get('/reportes', async (req, res) => {
 
 // Obtener las últimas transacciones (se puede dejar público)
 router.get('/ultimas', async (req, res) => {
+  let { fechaInicio, fechaFin } = req.query;
+  if (!fechaInicio || fechaInicio.trim() === '') {
+    fechaInicio = '1970-01-01';
+  }
+  if (!fechaFin || fechaFin.trim() === '') {
+    fechaFin = new Date().toISOString().slice(0, 10);
+  }
   try {
     const result = await db.query(
-      'SELECT * FROM finanzas ORDER BY fecha DESC LIMIT 10'
+      'SELECT * FROM finanzas WHERE fecha BETWEEN $1 AND $2 ORDER BY fecha ASC',
+      [fechaInicio, fechaFin]
     );
     res.json(result.rows);
   } catch (err) {
