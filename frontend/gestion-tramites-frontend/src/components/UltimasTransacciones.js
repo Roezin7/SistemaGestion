@@ -50,10 +50,12 @@ const UltimasTransacciones = () => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
   };
 
-  // Eliminar transacción
+  // Eliminar transacción (se añade header de autorización)
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
-      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`)
+      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
         .then(() => {
           // Recargar transacciones tras borrar
           cargarTransacciones();
@@ -137,7 +139,7 @@ const UltimasTransacciones = () => {
                 <TableCell>{tran.id}</TableCell>
                 <TableCell><strong>{tran.tipo}</strong></TableCell>
                 <TableCell>{tran.concepto}</TableCell>
-                <TableCell>{new Date(tran.fecha).toISOString().slice(0, 19).replace('T', ' ')}</TableCell>
+                <TableCell>{new Date(tran.fecha).toISOString().slice(0, 10)}</TableCell>
                 <TableCell>
                   {currencyFormatter.format(parseFloat(tran.monto))}
                 </TableCell>

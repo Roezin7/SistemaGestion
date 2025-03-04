@@ -26,7 +26,9 @@ const FinanzasForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('https://sistemagestion-pk62.onrender.com/api/finanzas', formData)
+    axios.post('https://sistemagestion-pk62.onrender.com/api/finanzas', formData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(response => {
         alert('Transacción guardada');
         setFormData({ tipo: 'ingreso', concepto: '', fecha: '', monto: '', client_id: '' });
