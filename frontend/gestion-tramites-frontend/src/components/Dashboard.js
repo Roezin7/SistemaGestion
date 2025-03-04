@@ -168,7 +168,7 @@ const Dashboard = () => {
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {kpi.title}
               </Typography>
-              <Typography variant="h5" sx={{ color: '#6f6f6f' }}>
+              <Typography variant="h5" sx={{ color: '#555555' }}>
                 {kpi.format
                   ? currencyFormatter.format(kpi.value)
                   : kpi.value
