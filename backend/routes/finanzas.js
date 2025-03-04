@@ -10,8 +10,8 @@ router.post('/', verificarToken, async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id } = req.body;
   try {
     const result = await db.query(
-      'INSERT INTO finanzas (tipo, concepto, fecha, monto, client_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [tipo, concepto, fecha, monto, client_id || null]
+      'INSERT INTO finanzas (tipo, concepto, fecha, monto, client_id, forma_pago) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [tipo, concepto, fecha, monto, client_id || null, req.body.forma_pago]
     );
     const nuevaTransaccion = result.rows[0];
     await registrarHistorial(req, `Se registró una transacción (${tipo}) con id ${nuevaTransaccion.id}`);
@@ -57,15 +57,23 @@ router.get('/ultimas', async (req, res) => {
 router.get('/abonos/:clientId', async (req, res) => {
   const { clientId } = req.params;
   try {
-    const result = await db.query(
+    const resultAbono = await db.query(
       "SELECT COALESCE(SUM(monto), 0) as total_abono FROM finanzas WHERE tipo = 'abono' AND client_id = $1",
       [clientId]
     );
-    const listResult = await db.query(
-      "SELECT id, concepto, fecha, monto FROM finanzas WHERE tipo = 'abono' AND client_id = $1 ORDER BY fecha ASC",
+    const resultIngreso = await db.query(
+      "SELECT COALESCE(SUM(monto), 0) as total_ingreso FROM finanzas WHERE tipo = 'ingreso' AND client_id = $1",
       [clientId]
     );
-    res.json({ total_abono: result.rows[0].total_abono, abonos: listResult.rows });
+    const listResult = await db.query(
+      "SELECT id, tipo, concepto, fecha, monto FROM finanzas WHERE client_id = $1 ORDER BY fecha ASC",
+      [clientId]
+    );
+    res.json({ 
+      total_abono: resultAbono.rows[0].total_abono,
+      total_ingreso: resultIngreso.rows[0].total_ingreso,
+      transacciones: listResult.rows 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -89,8 +97,8 @@ router.put('/:id', verificarToken, async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id } = req.body;
   try {
     const result = await db.query(
-      'UPDATE finanzas SET tipo = $1, concepto = $2, fecha = $3, monto = $4, client_id = $5 WHERE id = $6 RETURNING *',
-      [tipo, concepto, fecha, monto, client_id || null, id]
+      'UPDATE finanzas SET tipo = $1, concepto = $2, fecha = $3, monto = $4, client_id = $5, forma_pago = $6 WHERE id = $7 RETURNING *',
+      [tipo, concepto, fecha, monto, client_id || null, req.body.forma_pago, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Transacción no encontrada' });

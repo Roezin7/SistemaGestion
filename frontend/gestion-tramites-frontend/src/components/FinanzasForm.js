@@ -9,7 +9,8 @@ const FinanzasForm = () => {
     concepto: '',
     fecha: '',
     monto: '',
-    client_id: '' // Opcional para asociar a un cliente
+    client_id: '', // Opcional para asociar a un cliente
+    forma_pago: 'efectivo'  // Nuevo campo: por defecto "efectivo"
   });
 
   const [clients, setClients] = useState([]);
@@ -31,7 +32,7 @@ const FinanzasForm = () => {
     })
       .then(response => {
         alert('Transacción guardada');
-        setFormData({ tipo: 'ingreso', concepto: '', fecha: '', monto: '', client_id: '' });
+        setFormData({ tipo: 'ingreso', concepto: '', fecha: '', monto: '', client_id: '', forma_pago: 'efectivo' });
       })
       .catch(error => console.error('Error al guardar transacción:', error));
   };
@@ -97,6 +98,20 @@ const FinanzasForm = () => {
               {client.nombre} - {client.numero_recibo}
             </MenuItem>
           ))}
+        </Select>
+      </FormControl>
+      {/* Nuevo campo: Forma de Pago */}
+      <FormControl sx={{ minWidth: 150 }}>
+        <InputLabel id="forma-pago-label">Forma de Pago</InputLabel>
+        <Select
+          labelId="forma-pago-label"
+          label="Forma de Pago"
+          name="forma_pago"
+          value={formData.forma_pago}
+          onChange={handleChange}
+        >
+          <MenuItem value="efectivo">Efectivo</MenuItem>
+          <MenuItem value="transferencia">Transferencia</MenuItem>
         </Select>
       </FormControl>
       <Button type="submit" variant="contained">
