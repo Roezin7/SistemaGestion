@@ -51,13 +51,20 @@ const UltimasTransacciones = () => {
   // Eliminar transacción
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
-      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`)
+        const token = localStorage.getItem('token'); // Obtener el token almacenado
+    
+        axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}` // Agregar el token al header
+          }
+        })
         .then(() => {
-          cargarTransacciones();
+          cargarTransacciones(); // Recargar lista tras eliminar
         })
         .catch(error => console.error('Error al eliminar transacción:', error));
     }
   };
+  
 
   // Abrir el modal de edición para una transacción
   const handleEditTransaccion = (tran) => {
@@ -191,4 +198,3 @@ const UltimasTransacciones = () => {
 };
 
 export default UltimasTransacciones;
-
