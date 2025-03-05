@@ -120,7 +120,7 @@ const UltimasTransacciones = () => {
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell> {/* 🆕 Nueva columna */}
-              <TableCell sx={{ color: 'white', fontWeight: 'bold', width: '100px' }}>Acciones</TableCell> {/* Ajuste de espacio */}
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell> {/* Ajuste de espacio */}
             </TableRow>
           </TableHead>
 

@@ -131,7 +131,13 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                         <TableCell>{abono.tipo === 'ingreso' ? 'Ingreso' : 'Abono'}</TableCell>
                         <TableCell>{new Date(abono.fecha).toISOString().slice(0, 10)}</TableCell>
                         <TableCell>${parseFloat(abono.monto).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell>{abono.forma_pago ? abono.forma_pago : 'No especificado'}</TableCell>
+                        <TableCell>
+                          {abono.forma_pago ? (
+                            <span>{abono.forma_pago.charAt(0).toUpperCase() + abono.forma_pago.slice(1)}</span>
+                          ) : (
+                            <span style={{ color: 'gray' }}>No especificado</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
