@@ -1,4 +1,3 @@
-// src/components/EditarTransaccionModal.js
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, TextField, Button, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import axios from 'axios';
@@ -15,36 +14,58 @@ const modalStyle = {
 };
 
 const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdated }) => {
-  const [tipo, setTipo] = useState(transaccion.tipo);
-  const [concepto, setConcepto] = useState(transaccion.concepto);
-  const [fecha, setFecha] = useState(transaccion.fecha);
-  const [monto, setMonto] = useState(transaccion.monto);
-  const [clientId, setClientId] = useState(transaccion.client_id);
-  const [formaPago, setFormaPago] = useState(transaccion.forma_pago || 'efectivo'); // NUEVO campo
+  const [tipo, setTipo] = useState('');
+  const [concepto, setConcepto] = useState('');
+  const [fecha, setFecha] = useState('');
+  const [monto, setMonto] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [formaPago, setFormaPago] = useState('efectivo'); // Valor predeterminado
   const [clients, setClients] = useState([]);
 
+  // Cargar clientes al abrir el modal
   useEffect(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
+    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
       .then(response => setClients(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   }, []);
 
+  // Actualizar los datos cuando se abre el modal con una transacción existente
+  useEffect(() => {
+    if (transaccion) {
+      setTipo(transaccion.tipo || '');
+      setConcepto(transaccion.concepto || '');
+      setFecha(transaccion.fecha ? transaccion.fecha.slice(0, 10) : '');
+      setMonto(transaccion.monto || '');
+      setClientId(transaccion.client_id || '');
+      setFormaPago(transaccion.forma_pago || 'efectivo');
+    }
+  }, [transaccion]);
+
   const handleGuardar = async () => {
     try {
-      const response = await axios.put(`https://sistemagestion-pk62.onrender.com/api/finanzas/${transaccion.id}`, {
-        tipo,
-        concepto,
-        fecha,
-        monto,
-        client_id: clientId,
-        forma_pago: formaPago  // Se envía la forma de pago
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const response = await axios.put(
+        `https://sistemagestion-pk62.onrender.com/api/finanzas/${transaccion.id}`,
+        {
+          tipo,
+          concepto,
+          fecha,
+          monto,
+          client_id: clientId || null, // Evita errores con valores vacíos
+          forma_pago: formaPago || 'efectivo',
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+
       onTransaccionUpdated(response.data);
+      alert('Transacción actualizada correctamente');
       onClose();
     } catch (error) {
       console.error('Error al actualizar la transacción:', error);
+      alert('Error al actualizar la transacción.');
     }
   };
 
