@@ -167,7 +167,7 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(data.abonos || []).map((abono) => ( 
+                  {abonosData.abonos.map((abono) => (
                     <TableRow key={abono.id}>
                       <TableCell>
                         <strong>{abono.concepto}</strong>
