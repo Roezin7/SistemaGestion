@@ -42,7 +42,10 @@ const EditarClienteModal = ({ open, onClose, cliente, onClienteActualizado }) =>
   };
 
   const handleGuardar = () => {
-    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, formData)
+    const token = localStorage.getItem('token');
+    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, formData, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(response => {
         onClienteActualizado(response.data);
         onClose();

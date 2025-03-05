@@ -170,15 +170,16 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                   {Array.isArray(abonosData.abonos) && abonosData.abonos.length > 0 ? (
                     abonosData.abonos.map((abono) => (
                       <TableRow key={abono.id}>
-                        <TableCell>{abono.concepto}</TableCell>
-                        <TableCell>{abono.fecha.slice(0, 10)}</TableCell>
-                        <TableCell>{abono.monto}</TableCell>
+                        <TableCell>{abono.tipo === 'ingreso' ? 'Ingreso' : 'Abono'}</TableCell>
+                        <TableCell>{new Date(abono.fecha).toISOString().slice(0, 10)}</TableCell>
+                        <TableCell>${parseFloat(abono.monto).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell>{abono.forma_pago ? abono.forma_pago : 'No especificado'}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} align="center">
-                        No hay abonos registrados
+                      <TableCell colSpan={4} align="center">
+                        No hay registros de ingresos o abonos
                       </TableCell>
                     </TableRow>
                   )}

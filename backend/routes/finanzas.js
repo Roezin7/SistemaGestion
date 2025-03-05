@@ -62,26 +62,18 @@ router.get('/ultimas', async (req, res) => {
 });
 
 // Obtener historial de abonos para un cliente (se puede dejar público)
-router.get('/abonos/:clientId', async (req, res) => {
+router.get('/abonos/:clientId', verificarToken, async (req, res) => {
   const { clientId } = req.params;
   try {
-    const resultAbono = await db.query(
-      "SELECT COALESCE(SUM(monto), 0) as total_abono FROM finanzas WHERE tipo = 'abono' AND client_id = $1",
-      [clientId]
-    );
-    const resultIngreso = await db.query(
-      "SELECT COALESCE(SUM(monto), 0) as total_ingreso FROM finanzas WHERE tipo = 'ingreso' AND client_id = $1",
+    const result = await db.query(
+      "SELECT COALESCE(SUM(monto), 0) as total_abono FROM finanzas WHERE (tipo = 'abono' OR tipo = 'ingreso') AND client_id = $1",
       [clientId]
     );
     const listResult = await db.query(
-      "SELECT id, tipo, concepto, fecha, monto, forma_pago FROM finanzas WHERE client_id = $1 ORDER BY fecha ASC",
+      "SELECT id, tipo, concepto, fecha, monto FROM finanzas WHERE (tipo = 'abono' OR tipo = 'ingreso') AND client_id = $1 ORDER BY fecha ASC",
       [clientId]
     );
-    res.json({ 
-      total_abono: resultAbono.rows[0].total_abono,
-      total_ingreso: resultIngreso.rows[0].total_ingreso,
-      transacciones: listResult.rows 
-    });
+    res.json({ total_abono: result.rows[0].total_abono, abonos: listResult.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
