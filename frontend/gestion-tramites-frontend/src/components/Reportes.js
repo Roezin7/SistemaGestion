@@ -1,6 +1,5 @@
-// src/components/Reportes.js
 import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Paper, Grid, TableContainer, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
+import { Box, Typography, TextField, Button, Paper, Grid, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Card, CardContent } from '@mui/material';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -23,35 +22,21 @@ const Reportes = () => {
   });
 
   const handleBuscar = () => {
-    // 1. Cargar transacciones
-    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/reportes', {
-      params: { fechaInicio, fechaFin }
-    })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/reportes', { params: { fechaInicio, fechaFin } })
       .then(response => setDatos(response.data))
       .catch(error => console.error('Error al cargar reportes:', error));
 
-    // 2. Cargar KPI
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
-      params: { fechaInicio, fechaFin }
-    })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: { fechaInicio, fechaFin } })
       .then(response => setKpis(response.data))
       .catch(error => console.error('Error al cargar KPI:', error));
   };
 
   const exportarExcel = () => {
-    // Encabezado + KPI
     const header = [
       ['Reporte Profesional'],
-      [`Rango de Fechas: ${fechaInicio} - ${fechaFin}`, ''],
+      [`Rango de Fechas: ${fechaInicio} - ${fechaFin}`],
       [],
-      [
-        'Ingreso Total',
-        'Abonos Totales',
-        'Egreso Total',
-        'Balance General',
-        'Trámites Mensuales',
-        'Saldo Restante'
-      ],
+      ['Ingreso Total', 'Abonos Totales', 'Egreso Total', 'Balance General', 'Trámites Mensuales', 'Saldo Restante'],
       [
         kpis.ingreso_total,
         kpis.abonos_totales,
@@ -64,14 +49,7 @@ const Reportes = () => {
       ['ID', 'Tipo', 'Concepto', 'Fecha', 'Monto']
     ];
 
-    // Convertir datos en un arreglo de arreglos
-    const rows = datos.map(item => ([
-      item.id,
-      item.tipo,
-      item.concepto,
-      item.fecha,
-      item.monto
-    ]));
+    const rows = datos.map(item => ([item.id, item.tipo, item.concepto, item.fecha, item.monto]));
 
     const hoja = [...header, ...rows];
     const worksheet = XLSX.utils.aoa_to_sheet(hoja);
@@ -84,10 +62,11 @@ const Reportes = () => {
   };
 
   return (
-    <Box>
+    <Box p={2}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Reportes
       </Typography>
+
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={4}>
           <TextField
@@ -119,40 +98,32 @@ const Reportes = () => {
         </Grid>
       </Grid>
 
-      {/* KPI */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Resumen de KPI ({fechaInicio} - {fechaFin})
-        </Typography>
-        <Grid container spacing={2} sx={{ fontSize: '16px' }}>
-          <Grid item xs={12} sm={4}>
-            <strong>Ingreso Total:</strong>{' '}
-            {currencyFormatter.format(kpis.ingreso_total)}
+      {/* Sección de KPI mejorada */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {[
+          { label: 'Ingreso Total', value: kpis.ingreso_total },
+          { label: 'Abonos Totales', value: kpis.abonos_totales },
+          { label: 'Egreso Total', value: kpis.egreso_total },
+          { label: 'Balance General', value: kpis.balance_general },
+          { label: 'Trámites Mensuales', value: kpis.tramites_mensuales },
+          { label: 'Saldo Restante', value: kpis.saldo_restante }
+        ].map((kpi, index) => (
+          <Grid item xs={12} sm={4} key={index}>
+            <Card sx={{ backgroundColor: '#F5F5F5', p: 2 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                  {kpi.label}
+                </Typography>
+                <Typography variant="h5" sx={{ textAlign: 'center', color: '#06588a', fontWeight: 'bold' }}>
+                  {currencyFormatter.format(kpi.value)}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <strong>Abonos Totales:</strong>{' '}
-            {currencyFormatter.format(kpis.abonos_totales)}
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <strong>Egreso Total:</strong>{' '}
-            {currencyFormatter.format(kpis.egreso_total)}
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <strong>Balance General:</strong>{' '}
-            {currencyFormatter.format(kpis.balance_general)}
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <strong>Trámites Mensuales:</strong>{' '}
-            {kpis.tramites_mensuales}
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <strong>Saldo Restante:</strong>{' '}
-            {currencyFormatter.format(kpis.saldo_restante)}
-          </Grid>
-        </Grid>
-      </Paper>
+        ))}
+      </Grid>
 
-      {/* Tabla de transacciones */}
+      {/* Tabla de transacciones con balance general al final */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -170,10 +141,8 @@ const Reportes = () => {
                 <TableCell>{item.id}</TableCell>
                 <TableCell><strong>{item.tipo}</strong></TableCell>
                 <TableCell>{item.concepto}</TableCell>
-                <TableCell>{item.fecha}</TableCell>
-                <TableCell>
-                  {currencyFormatter.format(parseFloat(item.monto))}
-                </TableCell>
+                <TableCell>{new Date(item.fecha).toISOString().slice(0, 10)}</TableCell>
+                <TableCell>{currencyFormatter.format(parseFloat(item.monto))}</TableCell>
               </TableRow>
             ))}
             {datos.length === 0 && (
@@ -183,6 +152,15 @@ const Reportes = () => {
                 </TableCell>
               </TableRow>
             )}
+            {/* Fila de balance general */}
+            <TableRow sx={{ backgroundColor: '#e0e0e0', fontWeight: 'bold' }}>
+              <TableCell colSpan={4} align="right">
+                <strong>Balance General:</strong>
+              </TableCell>
+              <TableCell>
+                <strong>{currencyFormatter.format(kpis.balance_general)}</strong>
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
