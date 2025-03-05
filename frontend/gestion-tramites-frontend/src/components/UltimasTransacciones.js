@@ -1,4 +1,3 @@
-// src/components/UltimasTransacciones.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -35,9 +34,12 @@ const UltimasTransacciones = () => {
 
   // Cargar transacciones desde el backend
   const cargarTransacciones = () => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/ultimas', { params: dateRange })
-      .then(response => setTransacciones(response.data))
-      .catch(error => console.error('Error al cargar transacciones:', error));
+    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/ultimas', {
+      params: dateRange,
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    .then(response => setTransacciones(response.data))
+    .catch(error => console.error('Error al cargar transacciones:', error));
   };
 
   useEffect(() => {
@@ -51,23 +53,19 @@ const UltimasTransacciones = () => {
   // Eliminar transacción
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
-        const token = localStorage.getItem('token'); // Obtener el token almacenado
-    
-        axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}` // Agregar el token al header
-          }
-        })
-        .then(() => {
-          cargarTransacciones(); // Recargar lista tras eliminar
-        })
-        .catch(error => console.error('Error al eliminar transacción:', error));
+      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      .then(() => {
+        cargarTransacciones(); // Recargar lista tras eliminar
+      })
+      .catch(error => console.error('Error al eliminar transacción:', error));
     }
   };
-  
 
   // Abrir el modal de edición para una transacción
   const handleEditTransaccion = (tran) => {
+    console.log("Transacción seleccionada para editar:", tran);
     setSelectedTransaccion(tran);
     setOpenEditarModal(true);
   };
@@ -152,7 +150,7 @@ const UltimasTransacciones = () => {
                 <TableCell>{tran.id}</TableCell>
                 <TableCell><strong>{tran.tipo}</strong></TableCell>
                 <TableCell>{tran.concepto}</TableCell>
-                <TableCell>{new Date(tran.fecha).toISOString().slice(0, 10)}</TableCell>
+                <TableCell>{tran.fecha.slice(0, 10)}</TableCell>
                 <TableCell>
                   {currencyFormatter.format(parseFloat(tran.monto))}
                 </TableCell>
@@ -193,6 +191,16 @@ const UltimasTransacciones = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* MODAL PARA EDITAR TRANSACCIÓN */}
+      {selectedTransaccion && (
+        <EditarTransaccionModal
+          open={openEditarModal}
+          onClose={handleCloseEditarModal}
+          transaccion={selectedTransaccion}
+          onTransaccionUpdated={handleCloseEditarModal}
+        />
+      )}
     </Box>
   );
 };
