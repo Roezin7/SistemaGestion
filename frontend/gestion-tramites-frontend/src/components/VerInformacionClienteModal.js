@@ -167,21 +167,15 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                 {abonosData?.abonos?.length > 0 ? (
+                  {Array.isArray(abonosData.abonos) && abonosData.abonos.length > 0 ? (
                     abonosData.abonos.map((abono) => (
                       <TableRow key={abono.id}>
-                        <TableCell>{abono.fecha}</TableCell>
+                        <TableCell>{abono.concepto}</TableCell>
+                        <TableCell>{abono.fecha.slice(0, 10)}</TableCell>
                         <TableCell>{abono.monto}</TableCell>
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell colSpan={2} align="center">
-                        No hay abonos registrados
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {abonosData.abonos.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={3} align="center">
                         No hay abonos registrados
