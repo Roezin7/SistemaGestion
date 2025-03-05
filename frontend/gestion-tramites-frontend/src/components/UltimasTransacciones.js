@@ -119,10 +119,11 @@ const UltimasTransacciones = () => {
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Concepto</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
+              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell> {/* 🆕 Nueva columna */}
+              <TableCell sx={{ color: 'white', fontWeight: 'bold', width: '100px' }}>Acciones</TableCell> {/* Ajuste de espacio */}
             </TableRow>
           </TableHead>
+
           <TableBody>
             {transacciones.map((tran) => (
               <TableRow key={tran.id}>
@@ -130,13 +131,14 @@ const UltimasTransacciones = () => {
                 <TableCell><strong>{tran.tipo}</strong></TableCell>
                 <TableCell>{tran.concepto}</TableCell>
                 <TableCell>{new Date(tran.fecha).toISOString().slice(0, 10)}</TableCell>
+                <TableCell>{currencyFormatter.format(parseFloat(tran.monto))}</TableCell>
+                <TableCell>{tran.forma_pago ? tran.forma_pago : 'No especificado'}</TableCell> {/* ✅ Ahora se muestra */}
                 <TableCell>
-                  {currencyFormatter.format(parseFloat(tran.monto))}
-                </TableCell>
-                <TableCell>
+                  {/* Botón para editar */}
                   <IconButton onClick={() => handleEditTransaccion(tran)}>
                     <EditIcon color="primary" />
                   </IconButton>
+                  {/* Botón para eliminar */}
                   <IconButton onClick={() => handleDeleteTransaccion(tran.id)}>
                     <DeleteIcon color="error" />
                   </IconButton>
@@ -145,9 +147,7 @@ const UltimasTransacciones = () => {
             ))}
             {transacciones.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No hay transacciones en este rango de fechas
-                </TableCell>
+                <TableCell colSpan={7} align="center">No hay transacciones en este rango de fechas</TableCell>
               </TableRow>
             )}
           </TableBody>
