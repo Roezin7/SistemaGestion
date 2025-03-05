@@ -167,22 +167,20 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {abonosData.abonos.map((abono) => (
-                    <TableRow key={abono.id}>
-                      <TableCell>
-                        <strong>{abono.concepto}</strong>
-                      </TableCell>
-                      <TableCell>
-                        {abono.fecha ? abono.fecha.slice(0, 10) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        ${parseFloat(abono.monto).toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
+                 {abonosData?.abonos?.length > 0 ? (
+                    abonosData.abonos.map((abono) => (
+                      <TableRow key={abono.id}>
+                        <TableCell>{abono.fecha}</TableCell>
+                        <TableCell>{abono.monto}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} align="center">
+                        No hay abonos registrados
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                   {abonosData.abonos.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={3} align="center">
