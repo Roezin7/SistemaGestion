@@ -38,6 +38,16 @@ function App() {
   const [openAdminUsuarios, setOpenAdminUsuarios] = useState(false);
 
   useEffect(() => {
+    // Detectar recarga de la página y cerrar sesión automáticamente
+    window.onload = () => {
+      console.log("Recarga detectada, cerrando sesión...");
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('lastActivity');
+      setUser(null);
+      setIsAuthenticated(false);
+    };
+
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -90,7 +100,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log("Cerrando sesión por inactividad...");
+    console.log("Cerrando sesión...");
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('lastActivity');
