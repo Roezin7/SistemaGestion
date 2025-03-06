@@ -114,7 +114,7 @@ const Reportes = () => {
                 <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
                   {kpi.label}
                 </Typography>
-                <Typography variant="h5" sx={{ textAlign: 'center', color: '#06588a', fontWeight: 'bold' }}>
+                <Typography variant="h5" sx={{ textAlign: 'center', color: '#555555' }}>
                   {currencyFormatter.format(kpi.value)}
                 </Typography>
               </CardContent>
