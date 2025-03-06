@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import { Container, AppBar, Tabs, Tab, Box, Toolbar, Typography, Button } from '@mui/material';
 import Dashboard from './components/Dashboard';
@@ -11,8 +12,6 @@ import AdminUsuariosModal from './components/AdminUsuariosModal';
 import { AccountCircle, Dashboard as DashboardIcon, AttachMoney, Assessment } from '@mui/icons-material';
 import logo from './assets/newlogo.png';
 import leaderLogo from './assets/leaderlogo.png';
-
-const AUTO_LOGOUT_TIME = 30 * 60 * 1000; // 30 minutos en milisegundos
 
 function a11yProps(index) {
   return {
@@ -43,38 +42,6 @@ function App() {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
     }
-
-    // Función para verificar inactividad y cerrar sesión
-    const checkInactivity = () => {
-      const lastActivity = localStorage.getItem('lastActivity');
-      const now = Date.now();
-
-      if (lastActivity && now - lastActivity > AUTO_LOGOUT_TIME) {
-        handleLogout();
-      }
-    };
-
-    const updateActivity = () => {
-      localStorage.setItem('lastActivity', Date.now());
-    };
-
-    // Iniciar la actividad al cargar la página
-    updateActivity();
-
-    // Revisar cada minuto si hay inactividad
-    const interval = setInterval(checkInactivity, 60 * 1000);
-
-    // Escuchar eventos de actividad del usuario
-    window.addEventListener('mousemove', updateActivity);
-    window.addEventListener('keydown', updateActivity);
-    window.addEventListener('click', updateActivity);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('mousemove', updateActivity);
-      window.removeEventListener('keydown', updateActivity);
-      window.removeEventListener('click', updateActivity);
-    };
   }, []);
 
   const handleTabChange = (event, newIndex) => {
@@ -90,10 +57,8 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log("Cerrando sesión por inactividad...");
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('lastActivity');
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -116,6 +81,7 @@ function App() {
           <Typography variant="h6" style={{ flexGrow: 1 }} sx={{ fontWeight: 'bold' }}>
             Sistema de Gestión de Trámites Migratorios
           </Typography>
+          {/* Si el usuario es admin, mostramos el menú de administración */}
           {user && user.rol === 'admin' && (
             <AdminBanner onSelectOption={handleAdminOption} />
           )}
