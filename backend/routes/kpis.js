@@ -56,7 +56,8 @@ router.get('/', async (req, res) => {
     
     // 🚀 Balance general: ingresos - egresos
     const balance_general = ingreso_total - egreso_total;
-    git Trámites mensuales: cantidad de clientes creados en el rango
+    
+    // 🚀 Trámites mensuales: cantidad de clientes creados en el rango
     const tramitesResult = await db.query(
       'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2',
       [fechaInicio, fechaFin]
