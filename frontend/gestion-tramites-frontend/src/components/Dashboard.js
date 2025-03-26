@@ -19,18 +19,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 function getDefaultDateRange() {
   const now = new Date();
-  // Primer día del mes
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  // Último día del mes
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
   return {
     fechaInicio: firstDay.toISOString().slice(0, 10),
     fechaFin: lastDay.toISOString().slice(0, 10),
   };
 }
 
-// Formateador de montos a USD
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -39,14 +35,12 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 });
 
 const Dashboard = () => {
-  // Fecha por defecto: mes actual completo
   const defaultRange = getDefaultDateRange();
   const [dateRange, setDateRange] = useState({
     fechaInicio: defaultRange.fechaInicio,
     fechaFin: defaultRange.fechaFin,
   });
 
-  // KPI
   const [kpis, setKpis] = useState({
     ingreso_total: 0,
     abonos_totales: 0,
@@ -56,22 +50,34 @@ const Dashboard = () => {
     saldo_restante: 0,
   });
 
-  // Datos de las gráficas
   const [chartDataIngresos, setChartDataIngresos] = useState({ labels: [], datasets: [] });
   const [chartDataTramites, setChartDataTramites] = useState({ labels: [], datasets: [] });
 
-  // Función para obtener KPI (useCallback para no redefinirla en cada render)
   const fetchKpis = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
-      .then(response => setKpis(response.data))
-      .catch(error => console.error('Error al cargar KPI:', error));
+    const token = localStorage.getItem('token'); // Obtener el token almacenado
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
+      params: dateRange,
+      headers: {
+        Authorization: `Bearer ${token}` // Agregar el token al header
+      }
+    })
+      .then(response => {
+        setKpis(response.data);
+      })
+      .catch(error => {
+        console.error('Error al cargar KPI:', error.response ? error.response.data : error.message);
+      });
   }, [dateRange]);
 
-  // Función para obtener datos de las gráficas
   const fetchChartData = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', { params: dateRange })
+    const token = localStorage.getItem('token'); // Obtener el token almacenado
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', {
+      params: dateRange,
+      headers: {
+        Authorization: `Bearer ${token}` // Agregar el token al header
+      }
+    })
       .then(response => {
-        // Ingresos / Egresos
         setChartDataIngresos({
           labels: response.data.labels,
           datasets: [
@@ -88,7 +94,6 @@ const Dashboard = () => {
           ],
         });
 
-        // Tramites
         setChartDataTramites({
           labels: response.data.labels,
           datasets: [
@@ -102,27 +107,26 @@ const Dashboard = () => {
           ],
         });
       })
-      .catch(error => console.error('Error al cargar datos del gráfico:', error));
+      .catch(error => {
+        console.error('Error al cargar datos del gráfico:', error.response ? error.response.data : error.message);
+      });
   }, [dateRange]);
 
-  // Llamamos a fetchKpis y fetchChartData cuando cambien las fechas o al montar el componente
   useEffect(() => {
     fetchKpis();
     fetchChartData();
   }, [fetchKpis, fetchChartData]);
 
-  // Manejo de cambios en dateRange
   const handleDateChange = (e) => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
   };
 
   return (
     <Box p={2}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>       
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Dashboard
       </Typography>
 
-      {/* Selectores de fecha */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <TextField
           label="Fecha Inicio"
@@ -145,7 +149,6 @@ const Dashboard = () => {
         </Button>
       </Box>
 
-      {/* KPIs */}
       <Grid container spacing={2}>
         {[
           { title: 'Ingreso Total', value: kpis.ingreso_total, format: true },
@@ -156,15 +159,7 @@ const Dashboard = () => {
           { title: 'Saldo Restante', value: kpis.saldo_restante, format: true },
         ].map((kpi, index) => (
           <Grid item xs={6} sm={3} key={index}>
-            <Paper 
-              elevation={3} 
-              sx={{
-                p: 2, 
-                textAlign: 'center', 
-                transition: 'transform 0.3s', 
-                '&:hover': { transform: 'scale(1.05)' }
-              }}
-            >
+            <Paper elevation={3} sx={{ p: 2, textAlign: 'center', transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.05)' } }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {kpi.title}
               </Typography>
@@ -177,47 +172,6 @@ const Dashboard = () => {
             </Paper>
           </Grid>
         ))}
-      </Grid>
-
-      {/* Gráficas (manteniendo el tamaño anterior) */}
-      <Grid container spacing={2} sx={{ mt: 4 }}>
-        {/* Gráfica de Ingresos vs Egresos */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" align="center" sx={{ fontWeight: 'bold' }}>
-              Ingresos vs. Egresos
-            </Typography>
-            <Bar
-              data={chartDataIngresos}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: { position: 'top' },
-                  title: { display: true, text: 'Ingresos y Egresos Totales' },
-                },
-              }}
-            />
-          </Paper>
-        </Grid>
-
-        {/* Gráfica de Trámites Diarios */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" align="center" sx={{ fontWeight: 'bold' }}>
-              Trámites Diarios
-            </Typography>
-            <Line
-              data={chartDataTramites}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: { position: 'top' },
-                  title: { display: true, text: 'Cantidad de Trámites por Día' },
-                },
-              }}
-            />
-          </Paper>
-        </Grid>
       </Grid>
     </Box>
   );

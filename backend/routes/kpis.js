@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
       fechaFin = new Date().toISOString().slice(0, 10);
     }
     
-    // 🚀 Ingreso total: suma de ingresos, abonos y documentos
+    // 🚀 Ingreso total: suma de ingresos y abonos (sin documentos)
     const ingresosResult = await db.query(
       'SELECT COALESCE(SUM(monto), 0) as total_ingresos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['ingreso', fechaInicio, fechaFin]
@@ -31,16 +31,17 @@ router.get('/', async (req, res) => {
       'SELECT COALESCE(SUM(monto), 0) as total_abonos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['abono', fechaInicio, fechaFin]
     );
+
+    const ingreso_total = parseFloat(ingresosResult.rows[0].total_ingresos) 
+      + parseFloat(abonosResult.rows[0].total_abonos);
+
+    const abonos_totales = parseFloat(abonosResult.rows[0].total_abonos);
+
+    // 🚀 Documentos totales: suma de documentos
     const documentosResult = await db.query(
       'SELECT COALESCE(SUM(monto), 0) as total_documentos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['documento', fechaInicio, fechaFin]
     );
-
-    const ingreso_total = parseFloat(ingresosResult.rows[0].total_ingresos) 
-      + parseFloat(abonosResult.rows[0].total_abonos) 
-      + parseFloat(documentosResult.rows[0].total_documentos);
-
-    const abonos_totales = parseFloat(abonosResult.rows[0].total_abonos);
     const documentos_totales = parseFloat(documentosResult.rows[0].total_documentos);
 
     // 🚀 Egreso total: suma de egresos + retiros
@@ -63,22 +64,22 @@ router.get('/', async (req, res) => {
       [fechaInicio, fechaFin]
     );
     
-   // Saldo Restante: Suma de (costo_total_tramite + costo_documentos - total abonos - total ingresos)
+    // 🚀 Saldo Restante: cálculo preciso considerando abonos, ingresos y documentos
     const saldoRestanteResult = await db.query(
-      `SELECT COALESCE(SUM(c.costo_total_tramite + c.costo_total_documentos - COALESCE(f.total_abono, 0) - COALESCE(d.total_documento, 0)), 0) as saldo_restante
-      FROM clientes c
-      LEFT JOIN (
-        SELECT client_id, SUM(monto) as total_abono
-        FROM finanzas
-        WHERE tipo IN ('abono', 'ingreso')
-        GROUP BY client_id
-      ) f ON c.id = f.client_id
-      LEFT JOIN (
-        SELECT client_id, SUM(monto) as total_documento
-        FROM finanzas
-        WHERE tipo = 'documento'
-        GROUP BY client_id
-      ) d ON c.id = d.client_id`
+      `SELECT COALESCE(SUM(c.costo_total_tramite - COALESCE(f.total_abono, 0) - COALESCE(d.total_documento, 0)), 0) as saldo_restante
+       FROM clientes c
+       LEFT JOIN (
+         SELECT client_id, SUM(monto) as total_abono
+         FROM finanzas
+         WHERE tipo IN ('abono', 'ingreso')
+         GROUP BY client_id
+       ) f ON c.id = f.client_id
+       LEFT JOIN (
+         SELECT client_id, SUM(monto) as total_documento
+         FROM finanzas
+         WHERE tipo = 'documento'
+         GROUP BY client_id
+       ) d ON c.id = d.client_id`
     );
 
     res.json({
