@@ -60,7 +60,7 @@ router.get('/ultimas', async (req, res) => {
   }
 });
 
-// Obtener historial de abonos e ingresos para un cliente
+// Obtener historial de abonos e ingresos para un cliente (protegido)
 router.get('/abonos/:clientId', verificarToken, async (req, res) => {
   const { clientId } = req.params;
   try {
@@ -78,7 +78,7 @@ router.get('/abonos/:clientId', verificarToken, async (req, res) => {
   }
 });
 
-// Obtener historial de documentos para un cliente
+// Obtener historial de documentos para un cliente (protegido)
 router.get('/documentos/:clientId', verificarToken, async (req, res) => {
   const { clientId } = req.params;
   try {

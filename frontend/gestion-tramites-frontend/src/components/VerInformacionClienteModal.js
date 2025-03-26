@@ -30,15 +30,19 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
       setCostoTotal(cliente.costo_total_tramite || 0);
       setCostoDocumentos(cliente.costo_total_documentos || 0);
 
-      // Cargar historial de abonos
-      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`)
-        .then(response => setAbonosData(response.data))
-        .catch(error => console.error('Error al cargar abonos:', error));
+     // Cargar historial de abonos
+      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      .then(response => setAbonosData(response.data))
+      .catch(error => console.error('Error al cargar abonos:', error));
 
       // Cargar historial de documentos
-      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/documentos/${cliente.id}`)
-        .then(response => setDocumentosData(response.data))
-        .catch(error => console.error('Error al cargar documentos:', error));
+      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/documentos/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      .then(response => setDocumentosData(response.data))
+      .catch(error => console.error('Error al cargar documentos:', error));
     }
   }, [cliente]);
 
