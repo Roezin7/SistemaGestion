@@ -11,10 +11,11 @@ import {
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler);
 
 function getDefaultDateRange() {
   const now = new Date();
@@ -40,7 +41,8 @@ const chartOptions = {
       position: 'top',
       labels: {
         font: {
-          size: 14,
+          size: 16,
+          family: 'Arial'
         },
         color: '#333'
       }
@@ -49,14 +51,25 @@ const chartOptions = {
       display: true,
       text: 'Ingresos y Egresos Totales',
       font: {
-        size: 20
+        size: 24,
+        weight: 'bold'
       },
       color: '#222'
+    },
+    tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      titleFont: {
+        size: 16,
+        weight: 'bold'
+      },
+      bodyFont: {
+        size: 14
+      }
     }
   },
   animation: {
-    duration: 1000,
-    easing: 'easeInOutQuad'
+    duration: 1500,
+    easing: 'easeInOutQuart'
   },
   scales: {
     y: {
@@ -118,27 +131,29 @@ const Dashboard = () => {
     })
       .then(response => {
         setChartDataIngresos({
-          labels: response.data.labels.map(label => label.split('T')[0]), // Formato limpio de fecha
+          labels: response.data.labels.map(label => label.split('T')[0]),
           datasets: [
             {
               label: 'Ingresos Totales',
               data: response.data.ingresos,
-              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              backgroundColor: 'rgba(54, 162, 235, 0.7)',
               borderColor: 'rgba(54, 162, 235, 1)',
               borderWidth: 2,
+              borderRadius: 8,
             },
             {
               label: 'Egresos Totales',
               data: response.data.egresos,
-              backgroundColor: 'rgba(255, 99, 132, 0.6)',
+              backgroundColor: 'rgba(255, 99, 132, 0.7)',
               borderColor: 'rgba(255, 99, 132, 1)',
               borderWidth: 2,
+              borderRadius: 8,
             }
           ],
         });
 
         setChartDataTramites({
-          labels: response.data.labels.map(label => label.split('T')[0]), // Formato limpio de fecha
+          labels: response.data.labels.map(label => label.split('T')[0]),
           datasets: [
             {
               label: 'Trámites Diarios',
@@ -146,7 +161,10 @@ const Dashboard = () => {
               borderColor: 'rgba(255, 206, 86, 1)',
               backgroundColor: 'rgba(255, 206, 86, 0.6)',
               fill: true,
-              tension: 0.3
+              tension: 0.4,
+              pointRadius: 5,
+              pointBackgroundColor: 'rgba(255, 206, 86, 1)',
+              pointHoverRadius: 7,
             }
           ],
         });
@@ -164,7 +182,7 @@ const Dashboard = () => {
   };
 
   return (
-    <Box p={2}>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Dashboard
       </Typography>
@@ -201,8 +219,8 @@ const Dashboard = () => {
           { title: 'Saldo Restante', value: kpis.saldo_restante, format: true },
         ].map((kpi, index) => (
           <Grid item xs={12} sm={6} md={4} key={index}>
-            <Paper elevation={3} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f0f0f0' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+            <Paper elevation={4} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f7f7f7' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 {kpi.title}
               </Typography>
               <Typography variant="h5" sx={{ color: '#333' }}>
@@ -215,12 +233,12 @@ const Dashboard = () => {
 
       <Grid container spacing={2} sx={{ mt: 4 }}>
         <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2 }}>
+          <Paper elevation={4} sx={{ p: 2 }}>
             <Bar data={chartDataIngresos} options={chartOptions} />
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2 }}>
+          <Paper elevation={4} sx={{ p: 2 }}>
             <Line data={chartDataTramites} options={chartOptions} />
           </Paper>
         </Grid>
