@@ -85,35 +85,35 @@ router.get('/chart', async (req, res) => {
 
     const datesArray = getDatesArray(fechaInicio, fechaFin);
 
-    // Ingresos y Abonos
+    // Consulta de Ingresos y Abonos
     const ingresosQuery = await db.query(
-      `SELECT TO_CHAR(fecha, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_ingreso 
+      `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_ingreso 
        FROM finanzas 
        WHERE tipo IN ('ingreso', 'abono') 
        AND fecha BETWEEN $1 AND $2 
-       GROUP BY fecha 
-       ORDER BY fecha ASC`,
+       GROUP BY fecha::date 
+       ORDER BY fecha::date ASC`,
       [fechaInicio, fechaFin]
     );
 
-    // Egresos y Retiros
+    // Consulta de Egresos y Retiros
     const egresosQuery = await db.query(
-      `SELECT TO_CHAR(fecha, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_egreso 
+      `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_egreso 
        FROM finanzas 
        WHERE tipo IN ('egreso', 'retiro') 
        AND fecha BETWEEN $1 AND $2 
-       GROUP BY fecha 
-       ORDER BY fecha ASC`,
+       GROUP BY fecha::date 
+       ORDER BY fecha::date ASC`,
       [fechaInicio, fechaFin]
     );
 
-    // Trámites Diarios
+    // Consulta de Trámites Diarios
     const tramitesQuery = await db.query(
-      `SELECT TO_CHAR(fecha_creacion, 'YYYY-MM-DD') as fecha, COUNT(*) as total_tramites 
+      `SELECT TO_CHAR(fecha_creacion::date, 'YYYY-MM-DD') as fecha, COUNT(*) as total_tramites 
        FROM clientes 
-       WHERE fecha_creacion BETWEEN $1 AND $2 
-       GROUP BY fecha_creacion 
-       ORDER BY fecha_creacion ASC`,
+       WHERE fecha_creacion::date BETWEEN $1 AND $2 
+       GROUP BY fecha_creacion::date 
+       ORDER BY fecha_creacion::date ASC`,
       [fechaInicio, fechaFin]
     );
 
@@ -121,21 +121,31 @@ router.get('/chart', async (req, res) => {
     const egresosData = {};
     const tramitesData = {};
 
+    // Mapeo de ingresos
     ingresosQuery.rows.forEach(row => {
-      ingresosData[row.fecha] = parseFloat(row.total_ingreso);
+      ingresosData[row.fecha] = parseFloat(row.total_ingreso) || 0;
     });
 
+    // Mapeo de egresos
     egresosQuery.rows.forEach(row => {
-      egresosData[row.fecha] = parseFloat(row.total_egreso);
+      egresosData[row.fecha] = parseFloat(row.total_egreso) || 0;
     });
 
+    // Mapeo de trámites
     tramitesQuery.rows.forEach(row => {
-      tramitesData[row.fecha] = parseInt(row.total_tramites);
+      tramitesData[row.fecha] = parseInt(row.total_tramites) || 0;
     });
 
+    // Arreglos para los gráficos
     const ingresosArray = datesArray.map(date => ingresosData[date] || 0);
     const egresosArray = datesArray.map(date => egresosData[date] || 0);
     const tramitesArray = datesArray.map(date => tramitesData[date] || 0);
+
+    // Debug para verificar los resultados antes de enviar
+    console.log("Fechas:", datesArray);
+    console.log("Ingresos:", ingresosArray);
+    console.log("Egresos:", egresosArray);
+    console.log("Trámites:", tramitesArray);
 
     res.json({
       labels: datesArray,
@@ -144,6 +154,7 @@ router.get('/chart', async (req, res) => {
       tramites: tramitesArray,
     });
   } catch (err) {
+    console.error("Error en /chart:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
