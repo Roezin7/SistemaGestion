@@ -59,6 +59,18 @@ router.get('/', async (req, res) => {
       [fechaInicio, fechaFin]
     );
 
+    // 🔥 **Cálculo del saldo restante corregido**
+    const saldoRestanteResult = await db.query(
+      `SELECT COALESCE(SUM(c.costo_total_tramite + COALESCE(c.costo_total_documentos, 0) - COALESCE(f.total_abono, 0)), 0) as saldo_restante
+       FROM clientes c
+       LEFT JOIN (
+         SELECT client_id, SUM(monto) as total_abono
+         FROM finanzas
+         WHERE tipo IN ('abono', 'ingreso', 'documento')
+         GROUP BY client_id
+       ) f ON c.id = f.client_id`
+    );
+
     res.json({
       ingreso_total,
       abonos_totales,
@@ -66,6 +78,7 @@ router.get('/', async (req, res) => {
       egreso_total,
       balance_general,
       tramites_mensuales: tramitesResult.rows[0].tramites_mensuales,
+      saldo_restante: saldoRestanteResult.rows[0].saldo_restante,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -83,20 +96,25 @@ router.get('/chart', async (req, res) => {
       fechaFin = new Date().toISOString().slice(0, 10);
     }
 
-    const ingresosResult = await db.query(
+    const ingresosQuery = await db.query(
       `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
       [fechaInicio, fechaFin]
     );
-    const egresosResult = await db.query(
+    const egresosQuery = await db.query(
       `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'egreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
       [fechaInicio, fechaFin]
     );
+    const tramitesQuery = await db.query(
+      `SELECT fecha_creacion as fecha, COUNT(*) as total FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2 GROUP BY fecha_creacion ORDER BY fecha_creacion`,
+      [fechaInicio, fechaFin]
+    );
 
-    const labels = ingresosResult.rows.map(row => row.fecha);
-    const ingresos = ingresosResult.rows.map(row => parseFloat(row.total));
-    const egresos = egresosResult.rows.map(row => parseFloat(row.total));
+    const labels = ingresosQuery.rows.map(row => row.fecha);
+    const ingresos = ingresosQuery.rows.map(row => parseFloat(row.total));
+    const egresos = egresosQuery.rows.map(row => parseFloat(row.total));
+    const tramites = tramitesQuery.rows.map(row => parseInt(row.total));
 
-    res.json({ labels, ingresos, egresos });
+    res.json({ labels, ingresos, egresos, tramites });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
