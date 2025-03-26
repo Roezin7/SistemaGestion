@@ -1,4 +1,3 @@
-// backend/routes/kpis.js
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -13,6 +12,7 @@ function getDatesArray(startDate, endDate) {
   return arr;
 }
 
+// Endpoint principal de KPIs
 router.get('/', async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
@@ -23,7 +23,6 @@ router.get('/', async (req, res) => {
       fechaFin = new Date().toISOString().slice(0, 10);
     }
 
-    // Ingreso total: suma de ingresos + abonos
     const ingresosResult = await db.query(
       'SELECT COALESCE(SUM(monto), 0) as total_ingresos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['ingreso', fechaInicio, fechaFin]
@@ -32,10 +31,18 @@ router.get('/', async (req, res) => {
       'SELECT COALESCE(SUM(monto), 0) as total_abonos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['abono', fechaInicio, fechaFin]
     );
-    const ingreso_total = parseFloat(ingresosResult.rows[0].total_ingresos) + parseFloat(abonosResult.rows[0].total_abonos);
-    const abonos_totales = parseFloat(abonosResult.rows[0].total_abonos);
+    const documentosResult = await db.query(
+      'SELECT COALESCE(SUM(monto), 0) as total_documentos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
+      ['documento', fechaInicio, fechaFin]
+    );
 
-    // Egreso total: suma de egresos + retiros
+    const ingreso_total = parseFloat(ingresosResult.rows[0].total_ingresos) 
+      + parseFloat(abonosResult.rows[0].total_abonos) 
+      + parseFloat(documentosResult.rows[0].total_documentos);
+
+    const abonos_totales = parseFloat(abonosResult.rows[0].total_abonos);
+    const documentos_totales = parseFloat(documentosResult.rows[0].total_documentos);
+
     const egresosResult = await db.query(
       'SELECT COALESCE(SUM(monto), 0) as total_egresos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['egreso', fechaInicio, fechaFin]
@@ -47,64 +54,50 @@ router.get('/', async (req, res) => {
     const egreso_total = parseFloat(egresosResult.rows[0].total_egresos) + parseFloat(retirosResult.rows[0].total_retiros);
     const balance_general = ingreso_total - egreso_total;
 
-    // Trámites mensuales: cantidad de clientes creados en el rango
     const tramitesResult = await db.query(
       'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2',
       [fechaInicio, fechaFin]
     );
 
-    // Saldo Restante: Suma de (costo_total_tramite - total abonos)
-    const saldoRestanteResult = await db.query(
-      `SELECT COALESCE(SUM(c.costo_total_tramite - COALESCE(f.total_abono, 0)), 0) as saldo_restante
-       FROM clientes c
-       LEFT JOIN (
-         SELECT client_id, SUM(monto) as total_abono
-         FROM finanzas
-         WHERE tipo = 'abono'
-         GROUP BY client_id
-       ) f ON c.id = f.client_id`
-    );
-
     res.json({
       ingreso_total,
       abonos_totales,
+      documentos_totales,
       egreso_total,
       balance_general,
-      tramites_mensuales: parseInt(tramitesResult.rows[0].tramites_mensuales),
-      saldo_restante: parseFloat(saldoRestanteResult.rows[0].saldo_restante),
+      tramites_mensuales: tramitesResult.rows[0].tramites_mensuales,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Endpoint para datos de gráfico: ingresos y trámites diarios
+// Endpoint para el gráfico de KPIs
 router.get('/chart', async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
     if (!fechaInicio || fechaInicio.trim() === '') {
-      const now = new Date();
-      fechaInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      fechaInicio = '1970-01-01';
     }
     if (!fechaFin || fechaFin.trim() === '') {
-      const now = new Date();
-      fechaFin = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+      fechaFin = new Date().toISOString().slice(0, 10);
     }
 
-    const start = new Date(fechaInicio);
-    const end = new Date(fechaFin);
-    const datesArray = [];
-    for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-      datesArray.push(new Date(dt).toISOString().slice(0, 10));
-    }
+    const ingresosResult = await db.query(
+      `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
+      [fechaInicio, fechaFin]
+    );
+    const egresosResult = await db.query(
+      `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'egreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
+      [fechaInicio, fechaFin]
+    );
 
-    const ingresos = datesArray.map(() => Math.floor(Math.random() * 1000));
-    const egresos = datesArray.map(() => Math.floor(Math.random() * 500));
-    const tramites = datesArray.map(() => Math.floor(Math.random() * 10));
+    const labels = ingresosResult.rows.map(row => row.fecha);
+    const ingresos = ingresosResult.rows.map(row => parseFloat(row.total));
+    const egresos = egresosResult.rows.map(row => parseFloat(row.total));
 
-    res.json({ labels: datesArray, ingresos, egresos, tramites });
+    res.json({ labels, ingresos, egresos });
   } catch (err) {
-    console.error("Error en /chart:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
