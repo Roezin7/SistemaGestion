@@ -40,7 +40,7 @@ const chartOptions = {
       position: 'top',
       labels: {
         font: {
-          size: 16
+          size: 14,
         },
         color: '#333'
       }
@@ -55,8 +55,8 @@ const chartOptions = {
     }
   },
   animation: {
-    duration: 1500,
-    easing: 'easeInOutBounce'
+    duration: 1000,
+    easing: 'easeInOutQuad'
   },
   scales: {
     y: {
@@ -73,6 +73,11 @@ const chartOptions = {
     x: {
       grid: {
         color: 'rgba(0,0,0,0.1)'
+      },
+      title: {
+        display: true,
+        text: 'Fecha',
+        color: '#333'
       }
     }
   }
@@ -101,7 +106,9 @@ const Dashboard = () => {
     axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
       params: dateRange
     })
-      .then(response => setKpis(response.data))
+      .then(response => {
+        setKpis(response.data);
+      })
       .catch(error => console.error('Error al cargar KPI:', error));
   }, [dateRange]);
 
@@ -111,13 +118,13 @@ const Dashboard = () => {
     })
       .then(response => {
         setChartDataIngresos({
-          labels: response.data.labels,
+          labels: response.data.labels.map(label => label.split('T')[0]), // Formato limpio de fecha
           datasets: [
             {
               label: 'Ingresos Totales',
               data: response.data.ingresos,
-              backgroundColor: 'rgba(75, 192, 192, 0.6)',
-              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
               borderWidth: 2,
             },
             {
@@ -131,15 +138,15 @@ const Dashboard = () => {
         });
 
         setChartDataTramites({
-          labels: response.data.labels,
+          labels: response.data.labels.map(label => label.split('T')[0]), // Formato limpio de fecha
           datasets: [
             {
               label: 'Trámites Diarios',
               data: response.data.tramites,
-              borderColor: 'rgba(54, 162, 235, 1)',
-              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(255, 206, 86, 1)',
+              backgroundColor: 'rgba(255, 206, 86, 0.6)',
               fill: true,
-              tension: 0.4
+              tension: 0.3
             }
           ],
         });
@@ -193,16 +200,13 @@ const Dashboard = () => {
           { title: 'Trámites Mensuales', value: kpis.tramites_mensuales, format: false },
           { title: 'Saldo Restante', value: kpis.saldo_restante, format: true },
         ].map((kpi, index) => (
-          <Grid item xs={6} sm={3} key={index}>
-            <Paper elevation={4} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
+          <Grid item xs={12} sm={6} md={4} key={index}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f0f0f0' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {kpi.title}
               </Typography>
-              <Typography variant="h5" sx={{ color: '#555555' }}>
-                {kpi.format
-                  ? currencyFormatter.format(kpi.value)
-                  : kpi.value
-                }
+              <Typography variant="h5" sx={{ color: '#333' }}>
+                {kpi.format ? currencyFormatter.format(kpi.value || 0) : kpi.value || 0}
               </Typography>
             </Paper>
           </Grid>
