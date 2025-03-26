@@ -1,4 +1,3 @@
-// src/components/Dashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Grid, Paper, TextField, Button } from '@mui/material';
 import { Bar, Line } from 'react-chartjs-2';
@@ -34,6 +33,51 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2
 });
 
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top',
+      labels: {
+        font: {
+          size: 16
+        },
+        color: '#333'
+      }
+    },
+    title: {
+      display: true,
+      text: 'Ingresos y Egresos Totales',
+      font: {
+        size: 20
+      },
+      color: '#222'
+    }
+  },
+  animation: {
+    duration: 1500,
+    easing: 'easeInOutBounce'
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(0,0,0,0.1)'
+      },
+      title: {
+        display: true,
+        text: 'Monto en USD',
+        color: '#333'
+      }
+    },
+    x: {
+      grid: {
+        color: 'rgba(0,0,0,0.1)'
+      }
+    }
+  }
+};
+
 const Dashboard = () => {
   const defaultRange = getDefaultDateRange();
   const [dateRange, setDateRange] = useState({
@@ -54,13 +98,17 @@ const Dashboard = () => {
   const [chartDataTramites, setChartDataTramites] = useState({ labels: [], datasets: [] });
 
   const fetchKpis = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
+      params: dateRange
+    })
       .then(response => setKpis(response.data))
       .catch(error => console.error('Error al cargar KPI:', error));
   }, [dateRange]);
 
   const fetchChartData = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', { params: dateRange })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', {
+      params: dateRange
+    })
       .then(response => {
         setChartDataIngresos({
           labels: response.data.labels,
@@ -68,12 +116,16 @@ const Dashboard = () => {
             {
               label: 'Ingresos Totales',
               data: response.data.ingresos,
-              backgroundColor: '#06588a',
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 2,
             },
             {
               label: 'Egresos Totales',
               data: response.data.egresos,
-              backgroundColor: '#ff4081',
+              backgroundColor: 'rgba(255, 99, 132, 0.6)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 2,
             }
           ],
         });
@@ -84,9 +136,10 @@ const Dashboard = () => {
             {
               label: 'Trámites Diarios',
               data: response.data.tramites,
-              borderColor: '#ffa500',
-              fill: false,
-              tension: 0.3
+              borderColor: 'rgba(54, 162, 235, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              fill: true,
+              tension: 0.4
             }
           ],
         });
@@ -141,7 +194,7 @@ const Dashboard = () => {
           { title: 'Saldo Restante', value: kpis.saldo_restante, format: true },
         ].map((kpi, index) => (
           <Grid item xs={6} sm={3} key={index}>
-            <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
+            <Paper elevation={4} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f5f5f5' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {kpi.title}
               </Typography>
@@ -154,6 +207,19 @@ const Dashboard = () => {
             </Paper>
           </Grid>
         ))}
+      </Grid>
+
+      <Grid container spacing={2} sx={{ mt: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Bar data={chartDataIngresos} options={chartOptions} />
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Line data={chartDataTramites} options={chartOptions} />
+          </Paper>
+        </Grid>
       </Grid>
     </Box>
   );
