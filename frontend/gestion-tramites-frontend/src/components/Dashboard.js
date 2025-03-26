@@ -54,29 +54,13 @@ const Dashboard = () => {
   const [chartDataTramites, setChartDataTramites] = useState({ labels: [], datasets: [] });
 
   const fetchKpis = useCallback(() => {
-    const token = localStorage.getItem('token'); // Obtener el token almacenado
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', {
-      params: dateRange,
-      headers: {
-        Authorization: `Bearer ${token}` // Agregar el token al header
-      }
-    })
-      .then(response => {
-        setKpis(response.data);
-      })
-      .catch(error => {
-        console.error('Error al cargar KPI:', error.response ? error.response.data : error.message);
-      });
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
+      .then(response => setKpis(response.data))
+      .catch(error => console.error('Error al cargar KPI:', error));
   }, [dateRange]);
 
   const fetchChartData = useCallback(() => {
-    const token = localStorage.getItem('token'); // Obtener el token almacenado
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', {
-      params: dateRange,
-      headers: {
-        Authorization: `Bearer ${token}` // Agregar el token al header
-      }
-    })
+    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', { params: dateRange })
       .then(response => {
         setChartDataIngresos({
           labels: response.data.labels,
@@ -107,9 +91,7 @@ const Dashboard = () => {
           ],
         });
       })
-      .catch(error => {
-        console.error('Error al cargar datos del gráfico:', error.response ? error.response.data : error.message);
-      });
+      .catch(error => console.error('Error al cargar datos del gráfico:', error));
   }, [dateRange]);
 
   useEffect(() => {
@@ -159,7 +141,7 @@ const Dashboard = () => {
           { title: 'Saldo Restante', value: kpis.saldo_restante, format: true },
         ].map((kpi, index) => (
           <Grid item xs={6} sm={3} key={index}>
-            <Paper elevation={3} sx={{ p: 2, textAlign: 'center', transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.05)' } }}>
+            <Paper elevation={3} sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                 {kpi.title}
               </Typography>
