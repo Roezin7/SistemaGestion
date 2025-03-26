@@ -63,22 +63,22 @@ router.get('/', async (req, res) => {
       [fechaInicio, fechaFin]
     );
     
-    // 🚀 Saldo Restante: Suma de (costo_total_tramite - total abonos - total documentos)
+   // Saldo Restante: Suma de (costo_total_tramite + costo_documentos - total abonos - total ingresos)
     const saldoRestanteResult = await db.query(
-      `SELECT COALESCE(SUM(c.costo_total_tramite - COALESCE(f.total_abono, 0) - COALESCE(d.total_documento, 0)), 0) as saldo_restante
-       FROM clientes c
-       LEFT JOIN (
-         SELECT client_id, SUM(monto) as total_abono
-         FROM finanzas
-         WHERE tipo = 'abono'
-         GROUP BY client_id
-       ) f ON c.id = f.client_id
-       LEFT JOIN (
-         SELECT client_id, SUM(monto) as total_documento
-         FROM finanzas
-         WHERE tipo = 'documento'
-         GROUP BY client_id
-       ) d ON c.id = d.client_id`
+      `SELECT COALESCE(SUM(c.costo_total_tramite + c.costo_total_documentos - COALESCE(f.total_abono, 0) - COALESCE(d.total_documento, 0)), 0) as saldo_restante
+      FROM clientes c
+      LEFT JOIN (
+        SELECT client_id, SUM(monto) as total_abono
+        FROM finanzas
+        WHERE tipo IN ('abono', 'ingreso')
+        GROUP BY client_id
+      ) f ON c.id = f.client_id
+      LEFT JOIN (
+        SELECT client_id, SUM(monto) as total_documento
+        FROM finanzas
+        WHERE tipo = 'documento'
+        GROUP BY client_id
+      ) d ON c.id = d.client_id`
     );
 
     res.json({

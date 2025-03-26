@@ -87,6 +87,7 @@ const EditarTransaccionModal = ({ open, onClose, transaccion, onTransaccionUpdat
           <MenuItem value="egreso">Egreso</MenuItem>
           <MenuItem value="abono">Abono</MenuItem>
           <MenuItem value="retiro">Retiro</MenuItem>
+          <MenuItem value="documento">Documento</MenuItem>
         </TextField>
         <TextField
           label="Concepto"

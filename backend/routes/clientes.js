@@ -56,7 +56,8 @@ router.put('/:id', verificarToken, async (req, res) => {
     fecha_cita_cas,
     fecha_cita_consular,
     fecha_inicio_tramite,
-    costo_total_tramite
+    costo_total_tramite,
+    costo_total_documentos
   } = req.body;
 
   fecha_cita_cas = fecha_cita_cas === "" ? null : fecha_cita_cas;
@@ -73,8 +74,9 @@ router.put('/:id', verificarToken, async (req, res) => {
           fecha_cita_cas = COALESCE($5, fecha_cita_cas), 
           fecha_cita_consular = COALESCE($6, fecha_cita_consular),
           fecha_inicio_tramite = COALESCE($7, fecha_inicio_tramite),
-          costo_total_tramite = COALESCE($8, costo_total_tramite)
-       WHERE id = $9 RETURNING *`,
+          costo_total_tramite = COALESCE($8, costo_total_tramite),
+          costo_total_documentos = COALESCE($9, costo_total_documentos)
+       WHERE id = $10 RETURNING *`,
       [
         nombre,
         integrantes,
@@ -84,6 +86,7 @@ router.put('/:id', verificarToken, async (req, res) => {
         fecha_cita_consular,
         fecha_inicio_tramite,
         costo_total_tramite,
+        costo_total_documentos,
         id
       ]
     );

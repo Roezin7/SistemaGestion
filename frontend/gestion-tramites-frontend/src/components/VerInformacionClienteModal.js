@@ -21,12 +21,14 @@ import axios from 'axios';
 
 const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }) => {
   const [costoTotal, setCostoTotal] = useState('');
+  const [costoDocumentos, setCostoDocumentos] = useState('');
   const [abonosData, setAbonosData] = useState({ total_abono: 0, abonos: [] });
   const [documentosData, setDocumentosData] = useState({ total_documento: 0, documentos: [] });
 
   useEffect(() => {
     if (cliente) {
       setCostoTotal(cliente.costo_total_tramite || 0);
+      setCostoDocumentos(cliente.costo_total_documentos || 0);
 
       // Cargar historial de abonos
       axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`)
@@ -40,12 +42,13 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
     }
   }, [cliente]);
 
-  // Actualizar el costo total
+  // Actualizar el costo total del trámite
   const handleGuardarCosto = () => {
     if (!cliente) return;
     axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, {
       ...cliente,
-      costo_total_tramite: costoTotal
+      costo_total_tramite: costoTotal,
+      costo_total_documentos: costoDocumentos
     })
       .then(response => {
         if (onClienteUpdated) {
@@ -56,7 +59,7 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
       .catch(error => console.error('Error al actualizar costo:', error));
   };
 
-  const saldoRestante = parseFloat(costoTotal) - parseFloat(abonosData.total_abono) - parseFloat(documentosData.total_documento);
+  const saldoRestante = parseFloat(costoTotal) + parseFloat(costoDocumentos) - parseFloat(abonosData.total_abono) - parseFloat(documentosData.total_documento);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -99,13 +102,30 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
                     </Button>
                   </Box>
                 </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Costo Total de Documentos:
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={costoDocumentos}
+                      onChange={(e) => setCostoDocumentos(e.target.value)}
+                      sx={{ width: 100 }}
+                    />
+                    <Button variant="outlined" onClick={handleGuardarCosto}>
+                      Guardar
+                    </Button>
+                  </Box>
+                </Grid>
               </Grid>
             </Paper>
 
-            {/* Sección de abonos y saldo */}
+            {/* Sección de abonos, documentos y saldo */}
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Abonos y Documentos
+                Abonos, Documentos y Saldo
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
