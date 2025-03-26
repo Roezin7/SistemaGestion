@@ -6,71 +6,12 @@ function getDatesArray(startDate, endDate) {
   const arr = [];
   const dt = new Date(startDate);
   while (dt <= endDate) {
-    arr.push(new Date(dt).toISOString().slice(0, 10));
+    arr.push(new Date(dt).toISOString().slice(0, 10)); // Asegurando el formato YYYY-MM-DD
     dt.setDate(dt.getDate() + 1);
   }
   return arr;
 }
 
-router.get('/', async (req, res) => {
-  try {
-    let { fechaInicio, fechaFin } = req.query;
-    if (!fechaInicio || fechaInicio.trim() === '') {
-      fechaInicio = '1970-01-01';
-    }
-    if (!fechaFin || fechaFin.trim() === '') {
-      fechaFin = new Date().toISOString().slice(0, 10);
-    }
-
-    // Ingreso total: suma de ingresos + abonos
-    const ingresosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_ingresos FROM finanzas WHERE (tipo = $1 OR tipo = $2) AND fecha BETWEEN $3 AND $4',
-      ['ingreso', 'abono', fechaInicio, fechaFin]
-    );
-    const ingreso_total = parseFloat(ingresosResult.rows[0].total_ingresos);
-
-    // Egreso total: suma de egresos + retiros
-    const egresosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_egresos FROM finanzas WHERE (tipo = $1 OR tipo = $2) AND fecha BETWEEN $3 AND $4',
-      ['egreso', 'retiro', fechaInicio, fechaFin]
-    );
-    const egreso_total = parseFloat(egresosResult.rows[0].total_egresos);
-
-    const balance_general = ingreso_total - egreso_total;
-
-    // Trámites mensuales: cantidad de clientes creados en el rango
-    const tramitesResult = await db.query(
-      'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2',
-      [fechaInicio, fechaFin]
-    );
-
-    // Saldo Restante: suma de (costo_total_tramite - total abonos)
-    const saldoRestanteResult = await db.query(
-      `SELECT COALESCE(SUM(c.costo_total_tramite - COALESCE(f.total_abono, 0)), 0) as saldo_restante
-       FROM clientes c
-       LEFT JOIN (
-         SELECT client_id, SUM(monto) as total_abono
-         FROM finanzas
-         WHERE tipo IN ('abono', 'ingreso')
-         GROUP BY client_id
-       ) f ON c.id = f.client_id`
-    );
-
-    const saldo_restante = parseFloat(saldoRestanteResult.rows[0].saldo_restante);
-
-    res.json({
-      ingreso_total: ingreso_total || 0,
-      egreso_total: egreso_total || 0,
-      balance_general: balance_general || 0,
-      tramites_mensuales: parseInt(tramitesResult.rows[0].tramites_mensuales) || 0,
-      saldo_restante: saldo_restante || 0,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para datos de gráfico: ingresos y trámites diarios
 router.get('/chart', async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
@@ -83,31 +24,56 @@ router.get('/chart', async (req, res) => {
       fechaFin = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
     }
 
+    console.log(`Consultando datos desde ${fechaInicio} hasta ${fechaFin}`);
+
+    // Generar array de fechas con formato `YYYY-MM-DD`
     const datesArray = getDatesArray(fechaInicio, fechaFin);
 
-    // Consulta de Ingresos y Abonos
+    // 🚀 **Consulta de ingresos**
     const ingresosQuery = await db.query(
       `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_ingreso 
        FROM finanzas 
-       WHERE tipo IN ('ingreso', 'abono') 
+       WHERE tipo = 'ingreso' 
        AND fecha BETWEEN $1 AND $2 
        GROUP BY fecha::date 
        ORDER BY fecha::date ASC`,
       [fechaInicio, fechaFin]
     );
 
-    // Consulta de Egresos y Retiros
+    // 🚀 **Consulta de abonos**
+    const abonosQuery = await db.query(
+      `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_abono 
+       FROM finanzas 
+       WHERE tipo = 'abono' 
+       AND fecha BETWEEN $1 AND $2 
+       GROUP BY fecha::date 
+       ORDER BY fecha::date ASC`,
+      [fechaInicio, fechaFin]
+    );
+
+    // 🚀 **Consulta de egresos**
     const egresosQuery = await db.query(
       `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_egreso 
        FROM finanzas 
-       WHERE tipo IN ('egreso', 'retiro') 
+       WHERE tipo = 'egreso' 
        AND fecha BETWEEN $1 AND $2 
        GROUP BY fecha::date 
        ORDER BY fecha::date ASC`,
       [fechaInicio, fechaFin]
     );
 
-    // Consulta de Trámites Diarios
+    // 🚀 **Consulta de retiros**
+    const retirosQuery = await db.query(
+      `SELECT TO_CHAR(fecha::date, 'YYYY-MM-DD') as fecha, COALESCE(SUM(monto), 0) as total_retiro 
+       FROM finanzas 
+       WHERE tipo = 'retiro' 
+       AND fecha BETWEEN $1 AND $2 
+       GROUP BY fecha::date 
+       ORDER BY fecha::date ASC`,
+      [fechaInicio, fechaFin]
+    );
+
+    // 🚀 **Consulta de trámites**
     const tramitesQuery = await db.query(
       `SELECT TO_CHAR(fecha_creacion::date, 'YYYY-MM-DD') as fecha, COUNT(*) as total_tramites 
        FROM clientes 
@@ -118,30 +84,41 @@ router.get('/chart', async (req, res) => {
     );
 
     const ingresosData = {};
+    const abonosData = {};
     const egresosData = {};
+    const retirosData = {};
     const tramitesData = {};
 
-    // Mapeo de ingresos
+    // Procesar resultados de ingresos
     ingresosQuery.rows.forEach(row => {
-      ingresosData[row.fecha] = parseFloat(row.total_ingreso) || 0;
+      ingresosData[row.fecha] = parseFloat(row.total_ingreso);
     });
 
-    // Mapeo de egresos
+    // Procesar resultados de abonos
+    abonosQuery.rows.forEach(row => {
+      abonosData[row.fecha] = parseFloat(row.total_abono);
+    });
+
+    // Procesar resultados de egresos
     egresosQuery.rows.forEach(row => {
-      egresosData[row.fecha] = parseFloat(row.total_egreso) || 0;
+      egresosData[row.fecha] = parseFloat(row.total_egreso);
     });
 
-    // Mapeo de trámites
+    // Procesar resultados de retiros
+    retirosQuery.rows.forEach(row => {
+      retirosData[row.fecha] = parseFloat(row.total_retiro);
+    });
+
+    // Procesar resultados de trámites
     tramitesQuery.rows.forEach(row => {
-      tramitesData[row.fecha] = parseInt(row.total_tramites) || 0;
+      tramitesData[row.fecha] = parseInt(row.total_tramites);
     });
 
-    // Arreglos para los gráficos
-    const ingresosArray = datesArray.map(date => ingresosData[date] || 0);
-    const egresosArray = datesArray.map(date => egresosData[date] || 0);
+    // Mapear los resultados en el array de fechas
+    const ingresosArray = datesArray.map(date => (ingresosData[date] || 0) + (abonosData[date] || 0));
+    const egresosArray = datesArray.map(date => (egresosData[date] || 0) + (retirosData[date] || 0));
     const tramitesArray = datesArray.map(date => tramitesData[date] || 0);
 
-    // Debug para verificar los resultados antes de enviar
     console.log("Fechas:", datesArray);
     console.log("Ingresos:", ingresosArray);
     console.log("Egresos:", egresosArray);
