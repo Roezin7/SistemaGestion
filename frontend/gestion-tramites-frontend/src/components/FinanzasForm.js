@@ -51,6 +51,7 @@ const FinanzasForm = () => {
         <MenuItem value="egreso">Egreso</MenuItem>
         <MenuItem value="abono">Abono</MenuItem>
         <MenuItem value="retiro">Retiro</MenuItem>
+        <MenuItem value="documentos">Documentos</MenuItem>
       </TextField>
       <TextField 
         label="Concepto" 

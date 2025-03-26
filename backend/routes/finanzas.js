@@ -91,6 +91,41 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
+// Rutas para obtener transacciones de tipo documentos
+router.get('/documentos', async (req, res) => {
+  try {
+      const documentos = await pool.query(
+          `SELECT * FROM finanzas WHERE tipo = 'documentos'`
+      );
+      res.json(documentos.rows);
+  } catch (err) {
+      console.error('Error al obtener documentos:', err);
+      res.status(500).json({ error: 'Error al obtener documentos' });
+  }
+});
+
+// Agregar nueva transacción de documentos
+router.post('/', async (req, res) => {
+  const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
+
+  if (!tipo || !concepto || !fecha || !monto) {
+      return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  try {
+      const result = await pool.query(
+          `INSERT INTO finanzas (tipo, concepto, fecha, monto, client_id, forma_pago) 
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [tipo, concepto, fecha, monto, client_id, forma_pago]
+      );
+      res.json(result.rows[0]);
+  } catch (err) {
+      console.error('Error al agregar transacción:', err);
+      res.status(500).json({ error: 'Error al agregar transacción' });
+  }
+});
+
+
 // Editar una transacción existente (protegido)
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;

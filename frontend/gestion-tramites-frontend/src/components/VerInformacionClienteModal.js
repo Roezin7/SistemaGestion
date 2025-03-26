@@ -22,40 +22,41 @@ import axios from 'axios';
 const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }) => {
   const [costoTotal, setCostoTotal] = useState('');
   const [abonosData, setAbonosData] = useState({ total_abono: 0, abonos: [] });
+  const [documentosData, setDocumentosData] = useState({ total_documento: 0, documentos: [] });
 
   useEffect(() => {
     if (cliente) {
       setCostoTotal(cliente.costo_total_tramite || 0);
 
-      const token = localStorage.getItem('token'); // Obtiene el token
+      // Cargar historial de abonos
+      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`)
+        .then(response => setAbonosData(response.data))
+        .catch(error => console.error('Error al cargar abonos:', error));
 
-      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` } // Enviar token en la cabecera
-      })
-      .then(response => setAbonosData(response.data))
-      .catch(error => console.error('Error al cargar abonos:', error));
+      // Cargar historial de documentos
+      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/documentos/${cliente.id}`)
+        .then(response => setDocumentosData(response.data))
+        .catch(error => console.error('Error al cargar documentos:', error));
     }
   }, [cliente]);
 
+  // Actualizar el costo total
   const handleGuardarCosto = () => {
     if (!cliente) return;
-
-    const token = localStorage.getItem('token'); // Obtiene el token
-
-    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, 
-      { ...cliente, costo_total_tramite: costoTotal },
-      { headers: { Authorization: `Bearer ${token}` } } // Enviar token en la cabecera
-    )
-    .then(response => {
-      if (onClienteUpdated) {
-        onClienteUpdated(response.data);
-      }
-      alert('Costo actualizado');
+    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, {
+      ...cliente,
+      costo_total_tramite: costoTotal
     })
-    .catch(error => console.error('Error al actualizar costo:', error));
+      .then(response => {
+        if (onClienteUpdated) {
+          onClienteUpdated(response.data);
+        }
+        alert('Costo actualizado');
+      })
+      .catch(error => console.error('Error al actualizar costo:', error));
   };
 
-  const saldoRestante = parseFloat(costoTotal) - parseFloat(abonosData.total_abono || 0);
+  const saldoRestante = parseFloat(costoTotal) - parseFloat(abonosData.total_abono) - parseFloat(documentosData.total_documento);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -65,17 +66,26 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
       <DialogContent>
         {cliente && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Sección de datos generales */}
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Datos Generales
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Fecha de Inicio de Trámite:</Typography>
-                  <Typography>{cliente.fecha_creacion ? cliente.fecha_creacion.slice(0, 10) : '-'}</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Fecha de Inicio de Trámite:
+                  </Typography>
+                  <Typography>
+                    {cliente.fecha_creacion
+                      ? cliente.fecha_creacion.slice(0, 10)
+                      : '-'}
+                  </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Costo Total del Trámite:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Costo Total del Trámite:
+                  </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
                       size="small"
@@ -92,61 +102,89 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
               </Grid>
             </Paper>
 
+            {/* Sección de abonos y saldo */}
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Abonos e Ingresos
+                Abonos y Documentos
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Total Abonos:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Total Abonos:
+                  </Typography>
                   <Typography>
-                    ${parseFloat(abonosData.total_abono || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${parseFloat(abonosData.total_abono).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Saldo Restante:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Total Documentos:
+                  </Typography>
+                  <Typography>
+                    ${parseFloat(documentosData.total_documento).toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight: 'bold' }}>
+                    Saldo Restante:
+                  </Typography>
                   <Typography color={saldoRestante < 0 ? 'error' : 'inherit'}>
-                    ${saldoRestante.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${saldoRestante.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
                   </Typography>
                 </Grid>
               </Grid>
               <Divider sx={{ my: 2 }} />
 
+              {/* Tabla de historial de abonos */}
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Historial de Ingresos y Abonos
+                Historial de Abonos
               </Typography>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#06588a' }}>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Concepto</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell>
+                  <TableRow>
+                    <TableCell>Fecha</TableCell>
+                    <TableCell>Monto</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {Array.isArray(abonosData.abonos) && abonosData.abonos.length > 0 ? (
-                    abonosData.abonos.map((abono) => (
-                      <TableRow key={abono.id}>
-                        <TableCell>{abono.tipo === 'ingreso' ? 'Ingreso' : 'Abono'}</TableCell>
-                        <TableCell>{new Date(abono.fecha).toISOString().slice(0, 10)}</TableCell>
-                        <TableCell>${parseFloat(abono.monto).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell>
-                          {abono.forma_pago ? (
-                            <span>{abono.forma_pago.charAt(0).toUpperCase() + abono.forma_pago.slice(1)}</span>
-                          ) : (
-                            <span style={{ color: 'gray' }}>No especificado</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center">
-                        No hay registros de ingresos o abonos
-                      </TableCell>
+                  {abonosData.abonos.map((abono) => (
+                    <TableRow key={abono.id}>
+                      <TableCell>{abono.fecha}</TableCell>
+                      <TableCell>${abono.monto}</TableCell>
                     </TableRow>
-                  )}
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Tabla de historial de documentos */}
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mt: 2 }}>
+                Documentos
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Concepto</TableCell>
+                    <TableCell>Fecha</TableCell>
+                    <TableCell>Monto</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documentosData.documentos.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>{doc.concepto}</TableCell>
+                      <TableCell>{doc.fecha}</TableCell>
+                      <TableCell>${doc.monto}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </Paper>
