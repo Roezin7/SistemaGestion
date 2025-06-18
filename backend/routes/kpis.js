@@ -51,7 +51,9 @@ router.get('/', async (req, res) => {
       'SELECT COALESCE(SUM(monto), 0) as total_retiros FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
       ['retiro', fechaInicio, fechaFin]
     );
-    const egreso_total = parseFloat(egresosResult.rows[0].total_egresos) + parseFloat(retirosResult.rows[0].total_retiros);
+    const egreso_total = parseFloat(egresosResult.rows[0].total_egresos) 
+      + parseFloat(retirosResult.rows[0].total_retiros);
+
     const balance_general = ingreso_total - egreso_total;
 
     const tramitesResult = await db.query(
@@ -59,9 +61,12 @@ router.get('/', async (req, res) => {
       [fechaInicio, fechaFin]
     );
 
-    // 🔥 **Cálculo del saldo restante corregido**
     const saldoRestanteResult = await db.query(
-      `SELECT COALESCE(SUM(c.costo_total_tramite + COALESCE(c.costo_total_documentos, 0) - COALESCE(f.total_abono, 0)), 0) as saldo_restante
+      `SELECT COALESCE(SUM(
+          c.costo_total_tramite 
+          + COALESCE(c.costo_total_documentos, 0) 
+          - COALESCE(f.total_abono, 0)
+        ), 0) as saldo_restante
        FROM clientes c
        LEFT JOIN (
          SELECT client_id, SUM(monto) as total_abono
@@ -71,9 +76,7 @@ router.get('/', async (req, res) => {
        ) f ON c.id = f.client_id`
     );
 
-    
-
-    // NUEVO: ingresos por forma de pago
+    // ingresos por forma de pago
     const formaPagoResult = await db.query(
       `SELECT forma_pago, SUM(monto) AS total 
        FROM finanzas 
@@ -81,21 +84,15 @@ router.get('/', async (req, res) => {
        GROUP BY forma_pago`,
       [fechaInicio, fechaFin]
     );
-
-    let totalEfectivo = 0;
-    let totalTransferencia = 0;
-
+    let totalEfectivo = 0, totalTransferencia = 0;
     formaPagoResult.rows.forEach(row => {
-      if (row.forma_pago === 'efectivo') {
-        totalEfectivo = parseFloat(row.total);
-      } else if (row.forma_pago === 'transferencia') {
-        totalTransferencia = parseFloat(row.total);
-      }
+      if (row.forma_pago === 'efectivo') totalEfectivo = parseFloat(row.total);
+      if (row.forma_pago === 'transferencia') totalTransferencia = parseFloat(row.total);
     });
 
-res.json({
-    totalEfectivo,
-    totalTransferencia,
+    res.json({
+      totalEfectivo,
+      totalTransferencia,
       ingreso_total,
       abonos_totales,
       documentos_totales,
@@ -121,26 +118,54 @@ router.get('/chart', async (req, res) => {
     }
 
     const ingresosQuery = await db.query(
-      `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
+      `SELECT fecha, SUM(monto) as total 
+       FROM finanzas 
+       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2 
+       GROUP BY fecha ORDER BY fecha`,
       [fechaInicio, fechaFin]
     );
     const egresosQuery = await db.query(
-      `SELECT fecha, SUM(monto) as total FROM finanzas WHERE tipo = 'egreso' AND fecha BETWEEN $1 AND $2 GROUP BY fecha ORDER BY fecha`,
+      `SELECT fecha, SUM(monto) as total 
+       FROM finanzas 
+       WHERE tipo = 'egreso' AND fecha BETWEEN $1 AND $2 
+       GROUP BY fecha ORDER BY fecha`,
       [fechaInicio, fechaFin]
     );
     const tramitesQuery = await db.query(
-      `SELECT fecha_creacion as fecha, COUNT(*) as total FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2 GROUP BY fecha_creacion ORDER BY fecha_creacion`,
+      `SELECT fecha_creacion as fecha, COUNT(*) as total 
+       FROM clientes 
+       WHERE fecha_creacion BETWEEN $1 AND $2 
+       GROUP BY fecha_creacion ORDER BY fecha_creacion`,
       [fechaInicio, fechaFin]
     );
 
-    const labels = ingresosQuery.rows.map(row => row.fecha);
-    const ingresos = ingresosQuery.rows.map(row => parseFloat(row.total));
-    const egresos = egresosQuery.rows.map(row => parseFloat(row.total));
-    const tramites = tramitesQuery.rows.map(row => parseInt(row.total));
+    // **Aquí** repetimos el cálculo de forma de pago para que no falte en /chart
+    const formaPagoResult = await db.query(
+      `SELECT forma_pago, SUM(monto) AS total 
+       FROM finanzas 
+       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2
+       GROUP BY forma_pago`,
+      [fechaInicio, fechaFin]
+    );
+    let totalEfectivo = 0, totalTransferencia = 0;
+    formaPagoResult.rows.forEach(row => {
+      if (row.forma_pago === 'efectivo') totalEfectivo = parseFloat(row.total);
+      if (row.forma_pago === 'transferencia') totalTransferencia = parseFloat(row.total);
+    });
 
-    res.json({
-    totalEfectivo,
-    totalTransferencia, labels, ingresos, egresos, tramites });
+    const labels   = ingresosQuery.rows.map(r => r.fecha);
+    const ingresos = ingresosQuery.rows.map(r => parseFloat(r.total));
+    const egresos  = egresosQuery.rows.map(r => parseFloat(r.total));
+    const tramites = tramitesQuery.rows.map(r => parseInt(r.total, 10));
+
+    res.json({ 
+      totalEfectivo, 
+      totalTransferencia, 
+      labels, 
+      ingresos, 
+      egresos, 
+      tramites 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
