@@ -71,7 +71,31 @@ router.get('/', async (req, res) => {
        ) f ON c.id = f.client_id`
     );
 
-    res.json({
+    
+
+    // NUEVO: ingresos por forma de pago
+    const formaPagoResult = await db.query(
+      `SELECT forma_pago, SUM(monto) AS total 
+       FROM finanzas 
+       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2
+       GROUP BY forma_pago`,
+      [fechaInicio, fechaFin]
+    );
+
+    let totalEfectivo = 0;
+    let totalTransferencia = 0;
+
+    formaPagoResult.rows.forEach(row => {
+      if (row.forma_pago === 'efectivo') {
+        totalEfectivo = parseFloat(row.total);
+      } else if (row.forma_pago === 'transferencia') {
+        totalTransferencia = parseFloat(row.total);
+      }
+    });
+
+res.json({
+    totalEfectivo,
+    totalTransferencia,
       ingreso_total,
       abonos_totales,
       documentos_totales,
@@ -114,7 +138,9 @@ router.get('/chart', async (req, res) => {
     const egresos = egresosQuery.rows.map(row => parseFloat(row.total));
     const tramites = tramitesQuery.rows.map(row => parseInt(row.total));
 
-    res.json({ labels, ingresos, egresos, tramites });
+    res.json({
+    totalEfectivo,
+    totalTransferencia, labels, ingresos, egresos, tramites });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

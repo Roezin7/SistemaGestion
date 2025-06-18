@@ -227,7 +227,20 @@ const Dashboard = () => {
                 {kpi.format ? currencyFormatter.format(kpi.value || 0) : kpi.value || 0}
               </Typography>
             </Paper>
-          </Grid>
+          
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper elevation={3} sx={{ padding: 2 }}>
+            <Typography variant="h6">Efectivo recibido</Typography>
+            <Typography variant="h5">{currencyFormatter.format(data.totalEfectivo || 0)}</Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper elevation={3} sx={{ padding: 2 }}>
+            <Typography variant="h6">Transferencias recibidas</Typography>
+            <Typography variant="h5">{currencyFormatter.format(data.totalTransferencia || 0)}</Typography>
+          </Paper>
+        </Grid>
+</Grid>
         ))}
       </Grid>
 
