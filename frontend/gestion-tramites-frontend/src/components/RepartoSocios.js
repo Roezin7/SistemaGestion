@@ -23,8 +23,8 @@ const socios = ['Liz', 'Alberto'];
 
 function getLastMonthRange() {
   const now = new Date();
-  const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth(), 0);
+  const firstDayPrev = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   return {
     fechaInicio: firstDayPrev.toISOString().slice(0,10),
     fechaFin:    lastDayPrev.toISOString().slice(0,10)
