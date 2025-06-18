@@ -1,4 +1,4 @@
-// 3) Nuevo componente React: src/components/RepartoSocios.js
+// src/components/RepartoSocios.js
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Grid, Paper,
@@ -26,22 +26,34 @@ export default function RepartoSocios() {
     fecha: new Date().toISOString().slice(0,10)
   });
 
+  // Recupera el token de donde lo hayas guardado
+  const token = localStorage.getItem('token');
+
   const fetchReparto = () => {
-    axios.get('/api/finanzas/reparto', { params: fechas })
-      .then(res => setData(res.data))
-      .catch(console.error);
+    axios.get('/api/finanzas/reparto', {
+      params: fechas,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(res => setData(res.data))
+    .catch(err => console.error(err));
   };
 
   useEffect(fetchReparto, [fechas]);
 
   const handleRetiroSubmit = e => {
     e.preventDefault();
-    axios.post('/api/finanzas/retiros', retiro)
-      .then(() => {
-        setRetiro({ ...retiro, monto: '' });
-        fetchReparto();
-      })
-      .catch(console.error);
+    axios.post('/api/finanzas/retiros', retiro, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(() => {
+      setRetiro({ ...retiro, monto: '' });
+      fetchReparto();
+    })
+    .catch(err => console.error(err));
   };
 
   return (
@@ -105,5 +117,5 @@ export default function RepartoSocios() {
         ))}
       </Grid>
     </Box>
-);
+  );
 }
