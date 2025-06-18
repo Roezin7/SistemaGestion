@@ -44,6 +44,68 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2
 });
 
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top',
+      labels: {
+        font: {
+          size: 16,
+          family: 'Arial'
+        },
+        color: '#333'
+      }
+    },
+    title: {
+      display: true,
+      text: 'Ingresos y Egresos Totales',
+      font: {
+        size: 24,
+        weight: 'bold'
+      },
+      color: '#222'
+    },
+    tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      titleFont: {
+        size: 16,
+        weight: 'bold'
+      },
+      bodyFont: {
+        size: 14
+      }
+    }
+  },
+  animation: {
+    duration: 1500,
+    easing: 'easeInOutQuart'
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(0,0,0,0.1)'
+      },
+      title: {
+        display: true,
+        text: 'Monto en USD',
+        color: '#333'
+      }
+    },
+    x: {
+      grid: {
+        color: 'rgba(0,0,0,0.1)'
+      },
+      title: {
+        display: true,
+        text: 'Fecha',
+        color: '#333'
+      }
+    }
+  }
+};
+
 const Dashboard = () => {
   const defaultRange = getDefaultDateRange();
   const [dateRange, setDateRange] = useState({
@@ -58,8 +120,8 @@ const Dashboard = () => {
     balance_general: 0,
     tramites_mensuales: 0,
     saldo_restante: 0,
-    totalEfectivo: 0,          // valores nuevos
-    totalTransferencia: 0      // valores nuevos
+    totalEfectivo: 0,         // nuevo
+    totalTransferencia: 0     // nuevo
   });
 
   const [chartDataIngresos, setChartDataIngresos] = useState({ labels: [], datasets: [] });
@@ -70,7 +132,7 @@ const Dashboard = () => {
       params: dateRange
     })
     .then(response => {
-      // Ahora tomamos todo el objeto devuelto, incluyendo totalEfectivo y totalTransferencia
+      // recibiendo totalEfectivo y totalTransferencia junto con los KPIs existentes
       setKpis(response.data);
     })
     .catch(error => console.error('Error al cargar KPI:', error));
@@ -82,7 +144,7 @@ const Dashboard = () => {
     })
     .then(response => {
       setChartDataIngresos({
-        labels: response.data.labels.map(label => label.split('T')[0]),
+        labels: response.data.labels.map(l => l.split('T')[0]),
         datasets: [
           {
             label: 'Ingresos Totales',
@@ -102,9 +164,8 @@ const Dashboard = () => {
           }
         ],
       });
-
       setChartDataTramites({
-        labels: response.data.labels.map(label => label.split('T')[0]),
+        labels: response.data.labels.map(l => l.split('T')[0]),
         datasets: [
           {
             label: 'Trámites Diarios',
@@ -155,23 +216,26 @@ const Dashboard = () => {
           onChange={handleDateChange}
           InputLabelProps={{ shrink: true }}
         />
-        <Button variant="contained" onClick={() => { fetchKpis(); fetchChartData(); }}>
+        <Button
+          variant="contained"
+          onClick={() => { fetchKpis(); fetchChartData(); }}
+        >
           Actualizar
         </Button>
       </Box>
 
       <Grid container spacing={2}>
         {[
-          { title: 'Ingreso Total',            value: kpis.ingreso_total,         format: true },
-          { title: 'Abonos Totales',           value: kpis.abonos_totales,        format: true },
-          { title: 'Egreso Total',             value: kpis.egreso_total,          format: true },
-          { title: 'Balance',                  value: kpis.balance_general,       format: true },
-          { title: 'Trámites Mensuales',       value: kpis.tramites_mensuales,    format: false },
-          { title: 'Saldo Restante',           value: kpis.saldo_restante,        format: true },
-          { title: 'Efectivo recibido',        value: kpis.totalEfectivo,         format: true },
-          { title: 'Transferencias recibidas', value: kpis.totalTransferencia,    format: true },
-        ].map((kpi, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
+          { title: 'Ingreso Total',            value: kpis.ingreso_total,        format: true },
+          { title: 'Abonos Totales',           value: kpis.abonos_totales,       format: true },
+          { title: 'Egreso Total',             value: kpis.egreso_total,         format: true },
+          { title: 'Balance',                  value: kpis.balance_general,      format: true },
+          { title: 'Trámites Mensuales',       value: kpis.tramites_mensuales,   format: false },
+          { title: 'Saldo Restante',           value: kpis.saldo_restante,       format: true },
+          { title: 'Efectivo recibido',        value: kpis.totalEfectivo,        format: true },
+          { title: 'Transferencias recibidas', value: kpis.totalTransferencia,   format: true },
+        ].map((kpi, idx) => (
+          <Grid item xs={12} sm={6} md={4} key={idx}>
             <Paper elevation={4} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f7f7f7' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 {kpi.title}
@@ -190,24 +254,12 @@ const Dashboard = () => {
       <Grid container spacing={2} sx={{ mt: 4 }}>
         <Grid item xs={12} md={6}>
           <Paper elevation={4} sx={{ p: 2 }}>
-            <Bar data={chartDataIngresos} options={{
-              responsive: true,
-              plugins: {
-                legend: { position: 'top' },
-                title: { display: true, text: 'Ingresos y Egresos Totales' }
-              }
-            }} />
+            <Bar data={chartDataIngresos} options={chartOptions} />
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
           <Paper elevation={4} sx={{ p: 2 }}>
-            <Line data={chartDataTramites} options={{
-              responsive: true,
-              plugins: {
-                legend: { position: 'top' },
-                title: { display: true, text: 'Trámites Diarios' }
-              }
-            }} />
+            <Line data={chartDataTramites} options={chartOptions} />
           </Paper>
         </Grid>
       </Grid>
