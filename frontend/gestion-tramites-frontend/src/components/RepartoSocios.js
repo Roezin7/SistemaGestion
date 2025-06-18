@@ -1,9 +1,19 @@
 // src/components/RepartoSocios.js
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Grid, Paper,
-  TextField, Button, MenuItem,
-  List, ListItem, ListItemText,
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  TextField,
+  Button,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  List,
+  ListItem,
+  ListItemText,
   IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -13,8 +23,8 @@ const socios = ['Liz', 'Alberto'];
 
 function getLastMonthRange() {
   const now = new Date();
-  const firstDayPrev = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth(), 0);
   return {
     fechaInicio: firstDayPrev.toISOString().slice(0,10),
     fechaFin:    lastDayPrev.toISOString().slice(0,10)
@@ -22,9 +32,7 @@ function getLastMonthRange() {
 }
 
 export default function RepartoSocios() {
-  // 1) Inicializa fechas en mes pasado
   const [fechas, setFechas] = useState(getLastMonthRange());
-
   const [data, setData] = useState({
     utilidadNeta: 0,
     parteLiz: 0,
@@ -32,18 +40,14 @@ export default function RepartoSocios() {
     retiradoLiz: 0,
     retiradoAlberto: 0
   });
-
   const [retiro, setRetiro] = useState({
     socio: 'Liz',
     monto: '',
     fecha: new Date().toISOString().slice(0,10)
   });
-
   const [listaRetiros, setListaRetiros] = useState([]);
-
   const token = localStorage.getItem('token');
 
-  // 2) Fetch reparto y lista de retiros
   const fetchReparto = () => {
     axios.get('/api/finanzas/reparto', {
       params: fechas,
@@ -62,7 +66,6 @@ export default function RepartoSocios() {
 
   useEffect(fetchReparto, [fechas]);
 
-  // 3) Registrar nuevo retiro
   const handleRetiroSubmit = e => {
     e.preventDefault();
     axios.post('/api/finanzas/retiros', retiro, {
@@ -75,7 +78,6 @@ export default function RepartoSocios() {
     .catch(console.error);
   };
 
-  // 4) Eliminar retiro
   const handleDelete = id => {
     axios.delete(`/api/finanzas/retiros/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -85,52 +87,67 @@ export default function RepartoSocios() {
   };
 
   return (
-    <Box mt={4}>
-      <Typography variant="h5" gutterBottom>Reparto de Utilidades</Typography>
+    <Box p={2} mb={4} sx={{ backgroundColor: '#f9f9f9', borderRadius: 2, boxShadow: 1 }}>
+      <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+        Reparto de Utilidades
+      </Typography>
 
-      {/* 🔎 Filtros de fecha */}
-      <Box sx={{ display:'flex', gap:2, mb:2 }}>
-        <TextField
-          label="Desde" type="date"
-          value={fechas.fechaInicio}
-          onChange={e => setFechas({...fechas, fechaInicio: e.target.value})}
-          InputLabelProps={{ shrink:true }}
-        />
-        <TextField
-          label="Hasta" type="date"
-          value={fechas.fechaFin}
-          onChange={e => setFechas({...fechas, fechaFin: e.target.value})}
-          InputLabelProps={{ shrink:true }}
-        />
-        <Button variant="outlined" onClick={fetchReparto}>Actualizar</Button>
-      </Box>
+      {/* Formulario de Retiro */}
+      <Box
+        component="form"
+        onSubmit={handleRetiroSubmit}
+        sx={{
+          display: 'flex',
+          gap: 2,
+          flexWrap: 'wrap',
+          mb: 3,
+          alignItems: 'center'
+        }}
+      >
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel id="socio-label"><strong>Socio</strong></InputLabel>
+          <Select
+            labelId="socio-label"
+            label="Socio"
+            name="socio"
+            value={retiro.socio}
+            onChange={e => setRetiro({ ...retiro, socio: e.target.value })}
+          >
+            {socios.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </Select>
+        </FormControl>
 
-      {/* ➕ Formulario de retiros */}
-      <Box component="form" onSubmit={handleRetiroSubmit}
-           sx={{ display:'flex', gap:2, mb:4, alignItems:'center' }}>
         <TextField
-          select label="Socio" size="small" value={retiro.socio}
-          onChange={e => setRetiro({...retiro, socio: e.target.value})}
-        >
-          {socios.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-        </TextField>
-        <TextField
-          label="Monto" type="number" size="small"
+          label={<strong>Monto</strong>}
+          name="monto"
+          type="number"
+          size="small"
           value={retiro.monto}
-          onChange={e => setRetiro({...retiro, monto: e.target.value})}
+          onChange={e => setRetiro({ ...retiro, monto: e.target.value })}
+          sx={{ minWidth: 150 }}
         />
+
         <TextField
-          label="Fecha" type="date" size="small"
+          label={<strong>Fecha</strong>}
+          name="fecha"
+          type="date"
+          size="small"
           value={retiro.fecha}
-          onChange={e => setRetiro({...retiro, fecha: e.target.value})}
-          InputLabelProps={{ shrink:true }}
+          onChange={e => setRetiro({ ...retiro, fecha: e.target.value })}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
         />
-        <Button type="submit" variant="contained">Registrar</Button>
+
+        <Button type="submit" variant="contained">
+          Registrar Retiro
+        </Button>
       </Box>
 
-      {/* 🗒 Lista de retiros con opción a borrar */}
+      {/* Lista de Retiros */}
       <Box mb={4}>
-        <Typography variant="h6">Retiros Registrados</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Retiros Registrados
+        </Typography>
         <List>
           {listaRetiros.map(r => (
             <ListItem
@@ -142,30 +159,48 @@ export default function RepartoSocios() {
               }
             >
               <ListItemText
-                primary={`${r.socio}: $${Number(r.monto).toLocaleString()}`}
+                primary={
+                  <>
+                    <strong>{r.socio}</strong>: <strong>${Number(r.monto).toLocaleString()}</strong>
+                  </>
+                }
                 secondary={r.fecha}
               />
             </ListItem>
           ))}
           {listaRetiros.length === 0 && (
-            <Typography color="text.secondary">No hay retiros en este periodo.</Typography>
+            <Typography color="text.secondary">
+              No hay retiros en este periodo.
+            </Typography>
           )}
         </List>
       </Box>
 
-      {/* 📊 Panel de reparto */}
+      {/* Panel de Reparto */}
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Paper sx={{ p:2 }}>
-            <Typography>Total utilidad neta: ${data.utilidadNeta.toLocaleString()}</Typography>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+              Utilidad Neta
+            </Typography>
+            <Typography variant="h6">
+              ${data.utilidadNeta.toLocaleString()}
+            </Typography>
           </Paper>
         </Grid>
-        {['Liz','Alberto'].map(s => (
-          <Grid key={s} item xs={12} sm={6}>
-            <Paper sx={{ p:2 }}>
-              <Typography>{s}</Typography>
-              <Typography>Retirado: ${data[`retirado${s}`].toLocaleString()}</Typography>
-              <Typography>Disponible: ${data[`parte${s}`].toLocaleString()}</Typography>
+
+        {socios.map(s => (
+          <Grid item xs={12} sm={6} key={s}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                {s}
+              </Typography>
+              <Typography>
+                <strong>Retirado:</strong> ${data[`retirado${s}`].toLocaleString()}
+              </Typography>
+              <Typography>
+                <strong>Disponible:</strong> ${data[`parte${s}`].toLocaleString()}
+              </Typography>
             </Paper>
           </Grid>
         ))}
