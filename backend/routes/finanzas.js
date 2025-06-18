@@ -158,4 +158,40 @@ router.get('/reparto', verificarToken, async (req, res) => {
   }
 });
 
+// 2.9) Listar retiros en el rango dado
+router.get('/retiros', verificarToken, async (req, res) => {
+  let { fechaInicio, fechaFin } = req.query;
+  if (!fechaInicio) fechaInicio = '1970-01-01';
+  if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
+
+  try {
+    const result = await db.query(
+      `SELECT id, socio, monto, fecha
+       FROM retiros_socios
+       WHERE fecha BETWEEN $1 AND $2
+       ORDER BY fecha DESC`,
+      [fechaInicio, fechaFin]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2.10) Eliminar un retiro existente
+router.delete('/retiros/:id', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query(
+      'DELETE FROM retiros_socios WHERE id = $1',
+      [id]
+    );
+    await registrarHistorial(req, `Se eliminó retiro id ${id}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
