@@ -1,23 +1,23 @@
-// src/components/FinanzasPage.js
+// 4) Modificar src/components/FinanzasPage.js para incluir el nuevo panel
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import FinanzasForm from './FinanzasForm';
+import FinanzasForm         from './FinanzasForm';
 import UltimasTransacciones from './UltimasTransacciones';
+import RepartoSocios        from './RepartoSocios';    // <-- Importa aquí
 
-const FinanzasPage = () => {
+export default function FinanzasPage() {
   return (
     <Box p={2}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
         Finanzas
       </Typography>
 
-      {/* Formulario para registrar transacciones */}
       <FinanzasForm />
 
-      {/* Listado de últimas transacciones con Balance General al final */}
       <UltimasTransacciones />
+
+      {/* NUEVO: Panel de reparto entre socios */}
+      <RepartoSocios />
     </Box>
   );
-};
-
-export default FinanzasPage;
+}
