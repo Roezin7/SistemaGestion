@@ -34,6 +34,18 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2
 });
 
+
+const [data, setData] = useState({});
+
+useEffect(() => {
+  axios.get('/api/kpis')
+    .then((res) => {
+      setData(res.data);
+    })
+    .catch((err) => {
+      console.error("Error al cargar KPIs:", err);
+    });
+}, []);
 const chartOptions = {
   responsive: true,
   plugins: {
