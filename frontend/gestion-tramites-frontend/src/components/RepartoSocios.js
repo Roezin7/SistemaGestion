@@ -23,8 +23,8 @@ const socios = ['Liz', 'Alberto'];
 
 function getLastMonthRange() {
   const now = new Date();
-  const firstDayPrev = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDayPrev  = new Date(now.getFullYear(), now.getMonth(), 0);
   return {
     fechaInicio: firstDayPrev.toISOString().slice(0,10),
     fechaFin:    lastDayPrev.toISOString().slice(0,10)
@@ -92,7 +92,32 @@ export default function RepartoSocios() {
         Reparto de Utilidades
       </Typography>
 
-      {/* Formulario de Retiro */}
+      {/* 🔎 Filtros de fecha */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+        <TextField
+          label={<strong>Desde</strong>}
+          type="date"
+          size="small"
+          value={fechas.fechaInicio}
+          onChange={e => setFechas({ ...fechas, fechaInicio: e.target.value })}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
+        <TextField
+          label={<strong>Hasta</strong>}
+          type="date"
+          size="small"
+          value={fechas.fechaFin}
+          onChange={e => setFechas({ ...fechas, fechaFin: e.target.value })}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
+        <Button variant="outlined" onClick={fetchReparto}>
+          Actualizar
+        </Button>
+      </Box>
+
+      {/* ➕ Formulario de Retiro */}
       <Box
         component="form"
         onSubmit={handleRetiroSubmit}
@@ -100,7 +125,7 @@ export default function RepartoSocios() {
           display: 'flex',
           gap: 2,
           flexWrap: 'wrap',
-          mb: 3,
+          mb: 4,
           alignItems: 'center'
         }}
       >
@@ -143,7 +168,7 @@ export default function RepartoSocios() {
         </Button>
       </Box>
 
-      {/* Lista de Retiros */}
+      {/* 🗒 Lista de Retiros */}
       <Box mb={4}>
         <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
           Retiros Registrados
@@ -176,7 +201,7 @@ export default function RepartoSocios() {
         </List>
       </Box>
 
-      {/* Panel de Reparto */}
+      {/* 📊 Panel de Reparto */}
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
