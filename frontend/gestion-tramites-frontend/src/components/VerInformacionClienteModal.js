@@ -1,3 +1,5 @@
+// src/components/VerInformacionClienteModal.js
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -8,142 +10,94 @@ import {
   Grid,
   Typography,
   TextField,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
-  Divider,
-  Box
+  Box,
+  Paper
 } from '@mui/material';
 import axios from 'axios';
 
-const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }) => {
-  const [costoTotal, setCostoTotal] = useState('');
-  const [costoDocumentos, setCostoDocumentos] = useState('');
-  const [abonosData, setAbonosData] = useState({ total_abono: 0, abonos: [] });
-  const [documentosData, setDocumentosData] = useState({ total_documento: 0, documentos: [] });
+export default function VerInformacionClienteModal({
+  open,
+  onClose,
+  cliente,
+  onClienteUpdated
+}) {
+  const [costoTotal, setCostoTotal] = useState(0);
+  const [abonoRecibido, setAbonoRecibido] = useState(0);
 
   useEffect(() => {
-    if (cliente) {
-      setCostoTotal(cliente.costo_total_tramite || 0);
-      setCostoDocumentos(cliente.costo_total_documentos || 0);
-
-      const token = localStorage.getItem('token'); // Obtener el token almacenado
-
-      // Cargar historial de abonos
-      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/abonos/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(response => setAbonosData(response.data))
-      .catch(error => console.error('Error al cargar abonos:', error));
-
-      // Cargar historial de documentos
-      axios.get(`https://sistemagestion-pk62.onrender.com/api/finanzas/documentos/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(response => setDocumentosData(response.data))
-      .catch(error => console.error('Error al cargar documentos:', error));
-    }
+    if (!cliente) return;
+    setCostoTotal(cliente.costo_total_tramite || 0);
+    setAbonoRecibido(cliente.costo_total_documentos || 0);
   }, [cliente]);
 
-  // Actualizar el costo total y el costo de documentos
-  const handleGuardarCosto = () => {
-    if (!cliente) return;
-
-    const token = localStorage.getItem('token'); // Obtener el token
-
-    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/${cliente.id}`, 
-      { 
-        ...cliente,
-        costo_total_tramite: costoTotal,
-        costo_total_documentos: costoDocumentos 
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    .then(response => {
-      if (onClienteUpdated) {
-        onClienteUpdated(response.data);
-      }
-      alert('Costo actualizado');
+  const handleGuardar = () => {
+    const token = localStorage.getItem('token');
+    axios.put(`/api/clientes/${cliente.id}`, {
+      ...cliente,
+      costo_total_tramite: costoTotal,
+      costo_total_documentos: abonoRecibido
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-    .catch(error => console.error('Error al actualizar costo:', error));
+    .then(res => {
+      onClienteUpdated(res.data);
+      alert('Datos guardados');
+    })
+    .catch(console.error);
   };
 
-  const saldoRestante = parseFloat(costoTotal) + parseFloat(costoDocumentos) - parseFloat(abonosData.total_abono || 0) - parseFloat(documentosData.total_documento || 0);
+  const saldoRestante = parseFloat(costoTotal || 0) - parseFloat(abonoRecibido || 0);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle sx={{ fontWeight: 'bold' }}>
-        Información Adicional del Cliente
-      </DialogTitle>
+      <DialogTitle><strong>Información Financiera Manual</strong></DialogTitle>
       <DialogContent>
         {cliente && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Datos Generales
+                Detalles del Trámite
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Fecha de Inicio de Trámite:</Typography>
-                  <Typography>{cliente.fecha_creacion ? cliente.fecha_creacion.slice(0, 10) : '-'}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Costo Total del Trámite:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>Costo Total de Trámite:</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
-                      size="small"
                       type="number"
+                      size="small"
                       value={costoTotal}
-                      onChange={(e) => setCostoTotal(e.target.value)}
-                      sx={{ width: 100 }}
+                      onChange={e => setCostoTotal(e.target.value)}
+                      sx={{ width: 120 }}
                     />
-                    <Button variant="outlined" onClick={handleGuardarCosto}>
+                    <Button variant="outlined" onClick={handleGuardar}>
                       Guardar
                     </Button>
                   </Box>
                 </Grid>
+
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Costo Total de Documentos:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>Abono Recibido:</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
-                      size="small"
                       type="number"
-                      value={costoDocumentos}
-                      onChange={(e) => setCostoDocumentos(e.target.value)}
-                      sx={{ width: 100 }}
+                      size="small"
+                      value={abonoRecibido}
+                      onChange={e => setAbonoRecibido(e.target.value)}
+                      sx={{ width: 120 }}
                     />
-                    <Button variant="outlined" onClick={handleGuardarCosto}>
+                    <Button variant="outlined" onClick={handleGuardar}>
                       Guardar
                     </Button>
                   </Box>
                 </Grid>
-              </Grid>
-            </Paper>
 
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Abonos, Documentos y Saldo
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Total Abonos:</Typography>
-                  <Typography>${parseFloat(abonosData.total_abono || 0).toFixed(2)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography sx={{ fontWeight: 'bold' }}>Total Documentos:</Typography>
-                  <Typography>${parseFloat(documentosData.total_documento || 0).toFixed(2)}</Typography>
-                </Grid>
                 <Grid item xs={6}>
                   <Typography sx={{ fontWeight: 'bold' }}>Saldo Restante:</Typography>
                   <Typography color={saldoRestante < 0 ? 'error' : 'inherit'}>
-                    ${saldoRestante.toFixed(2)}
+                    ${saldoRestante.toLocaleString()}
                   </Typography>
                 </Grid>
               </Grid>
-              <Divider sx={{ my: 2 }} />
             </Paper>
           </Box>
         )}
@@ -153,6 +107,4 @@ const VerInformacionClienteModal = ({ open, onClose, cliente, onClienteUpdated }
       </DialogActions>
     </Dialog>
   );
-};
-
-export default VerInformacionClienteModal;
+}

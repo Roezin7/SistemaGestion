@@ -1,4 +1,5 @@
 // backend/routes/clientes.js
+
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -30,12 +31,23 @@ router.get('/', async (req, res) => {
 });
 
 // POST: Agregar un nuevo cliente (protegido)
+// Ahora recibe 'fecha_inicio_tramite' desde el body en lugar de usar NOW()
 router.post('/', verificarToken, async (req, res) => {
-  const { nombre, integrantes, numeroRecibo, estadoTramite } = req.body;
+  const {
+    nombre,
+    integrantes,
+    numeroRecibo,
+    estadoTramite,
+    fecha_inicio_tramite
+  } = req.body;
+
   try {
     const result = await db.query(
-      'INSERT INTO clientes (nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite, costo_total_tramite) VALUES ($1, $2, $3, $4, NOW(), NULL) RETURNING *',
-      [nombre, integrantes, numeroRecibo, estadoTramite]
+      `INSERT INTO clientes
+         (nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite, costo_total_tramite)
+       VALUES ($1, $2, $3, $4, $5, NULL)
+       RETURNING *`,
+      [nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite]
     );
     const nuevoCliente = result.rows[0];
     await registrarHistorial(req, `Se agregó un nuevo cliente con id ${nuevoCliente.id}`);
@@ -67,16 +79,17 @@ router.put('/:id', verificarToken, async (req, res) => {
   try {
     const result = await db.query(
       `UPDATE clientes SET 
-          nombre = COALESCE($1, nombre), 
-          integrantes = COALESCE($2, integrantes), 
-          numero_recibo = COALESCE($3, numero_recibo), 
-          estado_tramite = COALESCE($4, estado_tramite), 
-          fecha_cita_cas = COALESCE($5, fecha_cita_cas), 
-          fecha_cita_consular = COALESCE($6, fecha_cita_consular),
-          fecha_inicio_tramite = COALESCE($7, fecha_inicio_tramite),
-          costo_total_tramite = COALESCE($8, costo_total_tramite),
-          costo_total_documentos = COALESCE($9, costo_total_documentos)
-       WHERE id = $10 RETURNING *`,
+          nombre                = COALESCE($1, nombre), 
+          integrantes           = COALESCE($2, integrantes), 
+          numero_recibo         = COALESCE($3, numero_recibo), 
+          estado_tramite        = COALESCE($4, estado_tramite), 
+          fecha_cita_cas        = COALESCE($5, fecha_cita_cas), 
+          fecha_cita_consular   = COALESCE($6, fecha_cita_consular),
+          fecha_inicio_tramite  = COALESCE($7, fecha_inicio_tramite),
+          costo_total_tramite   = COALESCE($8, costo_total_tramite),
+          costo_total_documentos= COALESCE($9, costo_total_documentos)
+       WHERE id = $10
+       RETURNING *`,
       [
         nombre,
         integrantes,
