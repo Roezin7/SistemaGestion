@@ -30,6 +30,23 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET: Obtener un cliente por ID (protegido)
+router.get('/:id', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query(
+      'SELECT * FROM clientes WHERE id = $1',
+      [id]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST: Agregar un nuevo cliente (protegido)
 // Ahora recibe 'fecha_inicio_tramite' desde el body en lugar de usar NOW()
 router.post('/', verificarToken, async (req, res) => {
@@ -72,22 +89,22 @@ router.put('/:id', verificarToken, async (req, res) => {
     costo_total_documentos
   } = req.body;
 
-  fecha_cita_cas = fecha_cita_cas === "" ? null : fecha_cita_cas;
+  fecha_cita_cas      = fecha_cita_cas === "" ? null : fecha_cita_cas;
   fecha_cita_consular = fecha_cita_consular === "" ? null : fecha_cita_consular;
-  fecha_inicio_tramite = fecha_inicio_tramite === "" ? null : fecha_inicio_tramite;
+  fecha_inicio_tramite= fecha_inicio_tramite === "" ? null : fecha_inicio_tramite;
 
   try {
     const result = await db.query(
       `UPDATE clientes SET 
-          nombre                = COALESCE($1, nombre), 
-          integrantes           = COALESCE($2, integrantes), 
-          numero_recibo         = COALESCE($3, numero_recibo), 
-          estado_tramite        = COALESCE($4, estado_tramite), 
-          fecha_cita_cas        = COALESCE($5, fecha_cita_cas), 
-          fecha_cita_consular   = COALESCE($6, fecha_cita_consular),
-          fecha_inicio_tramite  = COALESCE($7, fecha_inicio_tramite),
-          costo_total_tramite   = COALESCE($8, costo_total_tramite),
-          costo_total_documentos= COALESCE($9, costo_total_documentos)
+          nombre                 = COALESCE($1, nombre), 
+          integrantes            = COALESCE($2, integrantes), 
+          numero_recibo          = COALESCE($3, numero_recibo), 
+          estado_tramite         = COALESCE($4, estado_tramite), 
+          fecha_cita_cas         = COALESCE($5, fecha_cita_cas), 
+          fecha_cita_consular    = COALESCE($6, fecha_cita_consular),
+          fecha_inicio_tramite   = COALESCE($7, fecha_inicio_tramite),
+          costo_total_tramite    = COALESCE($8, costo_total_tramite),
+          costo_total_documentos = COALESCE($9, costo_total_documentos)
        WHERE id = $10
        RETURNING *`,
       [
@@ -162,7 +179,7 @@ router.delete('/documentos/:docId', verificarToken, async (req, res) => {
   const { docId } = req.params;
   try {
     const docResult = await db.query('SELECT * FROM documentos_cliente WHERE id = $1', [docId]);
-    if (docResult.rows.length === 0) {
+    if (!docResult.rows.length) {
       return res.status(404).json({ error: 'Documento no encontrado' });
     }
     const documento = docResult.rows[0];
