@@ -1,4 +1,5 @@
-// 2) Backend completo: routes/finanzas.js
+// src/routes/finanzas.js
+
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -101,7 +102,31 @@ router.delete('/:id', verificarToken, async (req, res) => {
 });
 
 // ── NUEVO ──
-// 2.7) Registrar retiros de socio
+// 2.7) Actualizar transacción
+router.put('/:id', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
+  try {
+    const result = await db.query(
+      `UPDATE finanzas SET
+         tipo       = COALESCE($1, tipo),
+         concepto   = COALESCE($2, concepto),
+         fecha      = COALESCE($3, fecha),
+         monto      = COALESCE($4, monto),
+         client_id  = COALESCE($5, client_id),
+         forma_pago = COALESCE($6, forma_pago)
+       WHERE id = $7
+       RETURNING *`,
+      [tipo, concepto, fecha, monto, client_id || null, forma_pago, id]
+    );
+    await registrarHistorial(req, `Se actualizó transacción id ${id}`);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2.8) Registrar retiros de socio
 router.post('/retiros', verificarToken, async (req, res) => {
   const { socio, monto, fecha } = req.body;
   try {
@@ -116,7 +141,7 @@ router.post('/retiros', verificarToken, async (req, res) => {
   }
 });
 
-// 2.8) Obtener reparto de utilidades
+// 2.9) Obtener reparto de utilidades
 router.get('/reparto', verificarToken, async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
@@ -145,8 +170,8 @@ router.get('/reparto', verificarToken, async (req, res) => {
     );
     let retiradoLiz = 0, retiradoAlberto = 0;
     retiros.rows.forEach(r => {
-      if (r.socio === 'Liz')      retiradoLiz      = parseFloat(r.total_retirado);
-      if (r.socio === 'Alberto')  retiradoAlberto  = parseFloat(r.total_retirado);
+      if (r.socio === 'Liz')     retiradoLiz     = parseFloat(r.total_retirado);
+      if (r.socio === 'Alberto') retiradoAlberto = parseFloat(r.total_retirado);
     });
 
     const parteLiz     = mitad - retiradoLiz;
@@ -158,7 +183,7 @@ router.get('/reparto', verificarToken, async (req, res) => {
   }
 });
 
-// 2.9) Listar retiros en el rango dado
+// 2.10) Listar retiros en el rango dado
 router.get('/retiros', verificarToken, async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
@@ -178,7 +203,7 @@ router.get('/retiros', verificarToken, async (req, res) => {
   }
 });
 
-// 2.10) Eliminar un retiro existente
+// 2.11) Eliminar un retiro existente
 router.delete('/retiros/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -192,6 +217,5 @@ router.delete('/retiros/:id', verificarToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
