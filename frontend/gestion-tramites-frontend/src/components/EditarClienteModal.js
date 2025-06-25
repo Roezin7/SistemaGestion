@@ -9,9 +9,9 @@ import axios from 'axios';
 
 export default function EditarClienteModal({
   open,
-  onClose,
-  cliente,                      // { id }
-  onClienteUpdated = () => {}   // valor por defecto para evitar errors
+  onClose = () => {},            // por si no se pasa
+  cliente,                       // { id }
+  onClienteUpdated = () => {}    // por si no se pasa
 }) {
   const [formData, setFormData] = useState({
     nombre: '',
@@ -25,50 +25,48 @@ export default function EditarClienteModal({
     costo_total_documentos: ''
   });
 
-  // Al abrir el modal, traemos los datos del cliente
+  // Cuando se abra, cargar datos
   useEffect(() => {
     if (!open || !cliente?.id) return;
     const token = localStorage.getItem('token');
-    axios
-      .get(`/api/clientes/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then((res) => {
-        const c = res.data;
-        setFormData({
-          nombre: c.nombre || '',
-          integrantes: c.integrantes || '',
-          numeroRecibo: c.numero_recibo || '',
-          estadoTramite: c.estado_tramite || '',
-          fecha_cita_cas: c.fecha_cita_cas?.slice(0,10) || '',
-          fecha_cita_consular: c.fecha_cita_consular?.slice(0,10) || '',
-          fecha_inicio_tramite: c.fecha_inicio_tramite?.slice(0,10) || '',
-          costo_total_tramite: c.costo_total_tramite || '',
-          costo_total_documentos: c.costo_total_documentos || ''
-        });
-      })
-      .catch(console.error);
+    axios.get(`/api/clientes/${cliente.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      const c = res.data;
+      setFormData({
+        nombre: c.nombre || '',
+        integrantes: c.integrantes || '',
+        numeroRecibo: c.numero_recibo || '',
+        estadoTramite: c.estado_tramite || '',
+        fecha_cita_cas: c.fecha_cita_cas?.slice(0,10) || '',
+        fecha_cita_consular: c.fecha_cita_consular?.slice(0,10) || '',
+        fecha_inicio_tramite: c.fecha_inicio_tramite?.slice(0,10) || '',
+        costo_total_tramite: c.costo_total_tramite || '',
+        costo_total_documentos: c.costo_total_documentos || ''
+      });
+    })
+    .catch(console.error);
   }, [open, cliente]);
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
     setFormData(fd => ({ ...fd, [name]: value }));
   };
 
   const handleSave = () => {
     const token = localStorage.getItem('token');
-    axios
-      .put(`/api/clientes/${cliente.id}`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then((res) => {
-        // Solo llamamos si es función
-        if (typeof onClienteUpdated === 'function') {
-          onClienteUpdated(res.data);
-        }
-        onClose();
-      })
-      .catch(console.error);
+    axios.put(`/api/clientes/${cliente.id}`, formData, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      // Guardar solo si es función
+      if (typeof onClienteUpdated === 'function') {
+        onClienteUpdated(res.data);
+      }
+      onClose();
+    })
+    .catch(console.error);
   };
 
   return (
@@ -76,7 +74,6 @@ export default function EditarClienteModal({
       <DialogTitle>Editar Cliente</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
-          {/* Nombre */}
           <Grid item xs={6}>
             <TextField
               label="Nombre"
@@ -86,7 +83,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Integrantes */}
           <Grid item xs={6}>
             <TextField
               label="Integrantes"
@@ -97,7 +93,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Número de Recibo */}
           <Grid item xs={6}>
             <TextField
               label="Número de Recibo"
@@ -107,7 +102,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Estado de Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Estado de Trámite"
@@ -117,7 +111,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Fecha Cita CAS */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Cita CAS"
@@ -129,7 +122,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Fecha Cita Consular */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Cita Consular"
@@ -141,7 +133,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Fecha Inicio Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Inicio Trámite"
@@ -153,7 +144,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Costo Total Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Costo Total Trámite"
@@ -164,7 +154,6 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* Costo Total Documentos */}
           <Grid item xs={6}>
             <TextField
               label="Costo Total Documentos"
