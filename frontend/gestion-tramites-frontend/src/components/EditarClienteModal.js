@@ -1,4 +1,5 @@
 // src/components/EditarClienteModal.js
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -9,8 +10,8 @@ import axios from 'axios';
 export default function EditarClienteModal({
   open,
   onClose,
-  cliente,            // { id }
-  onClienteUpdated
+  cliente,                      // { id }
+  onClienteUpdated = () => {}   // valor por defecto para evitar errors
 }) {
   const [formData, setFormData] = useState({
     nombre: '',
@@ -24,6 +25,7 @@ export default function EditarClienteModal({
     costo_total_documentos: ''
   });
 
+  // Al abrir el modal, traemos los datos del cliente
   useEffect(() => {
     if (!open || !cliente?.id) return;
     const token = localStorage.getItem('token');
@@ -60,7 +62,10 @@ export default function EditarClienteModal({
         headers: { Authorization: `Bearer ${token}` }
       })
       .then((res) => {
-        onClienteUpdated(res.data);
+        // Solo llamamos si es función
+        if (typeof onClienteUpdated === 'function') {
+          onClienteUpdated(res.data);
+        }
         onClose();
       })
       .catch(console.error);
@@ -71,7 +76,7 @@ export default function EditarClienteModal({
       <DialogTitle>Editar Cliente</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
-          {/* — Campo Nombre — */}
+          {/* Nombre */}
           <Grid item xs={6}>
             <TextField
               label="Nombre"
@@ -81,7 +86,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Campo Integrantes — */}
+          {/* Integrantes */}
           <Grid item xs={6}>
             <TextField
               label="Integrantes"
@@ -92,7 +97,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Número de Recibo — */}
+          {/* Número de Recibo */}
           <Grid item xs={6}>
             <TextField
               label="Número de Recibo"
@@ -102,7 +107,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Estado de Trámite — */}
+          {/* Estado de Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Estado de Trámite"
@@ -112,7 +117,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Fecha Cita CAS — */}
+          {/* Fecha Cita CAS */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Cita CAS"
@@ -124,7 +129,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Fecha Cita Consular — */}
+          {/* Fecha Cita Consular */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Cita Consular"
@@ -136,7 +141,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Fecha Inicio Trámite — */}
+          {/* Fecha Inicio Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Fecha Inicio Trámite"
@@ -148,7 +153,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Costo Total Trámite — */}
+          {/* Costo Total Trámite */}
           <Grid item xs={6}>
             <TextField
               label="Costo Total Trámite"
@@ -159,7 +164,7 @@ export default function EditarClienteModal({
               fullWidth
             />
           </Grid>
-          {/* — Costo Total Documentos — */}
+          {/* Costo Total Documentos */}
           <Grid item xs={6}>
             <TextField
               label="Costo Total Documentos"
