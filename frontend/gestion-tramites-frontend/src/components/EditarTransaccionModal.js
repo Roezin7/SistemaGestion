@@ -20,8 +20,8 @@ const modalStyle = {
 
 export default function EditarTransaccionModal({
   open,
-  onClose,
-  transaccion,               // { id, tipo, concepto, fecha, monto, client_id, forma_pago }
+  onClose = () => {},
+  transaccion,                // { id, tipo, concepto, fecha, monto, client_id, forma_pago }
   onTransaccionUpdated = () => {}
 }) {
   const [datos, setDatos] = useState({
@@ -32,7 +32,9 @@ export default function EditarTransaccionModal({
     client_id: '',
     forma_pago: ''
   });
+  const [clientes, setClientes] = useState([]);
 
+  // Cargar datos de la transacción al abrir
   useEffect(() => {
     if (!open || !transaccion) return;
     setDatos({
@@ -44,6 +46,19 @@ export default function EditarTransaccionModal({
       forma_pago: transaccion.forma_pago
     });
   }, [open, transaccion]);
+
+  // Cargar lista de clientes para el selector
+  useEffect(() => {
+    if (!open) return;
+    const token = localStorage.getItem('token');
+    axios.get('/api/clientes', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      setClientes(res.data);
+    })
+    .catch(console.error);
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,7 +78,7 @@ export default function EditarTransaccionModal({
     })
     .catch(err => {
       console.error('Error al actualizar la transacción:', err);
-      alert('No se pudo actualizar. Revisa la consola para detalle.');
+      alert('No se pudo actualizar. Revisa la consola.');
     });
   };
 
@@ -71,6 +86,7 @@ export default function EditarTransaccionModal({
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>
         <Typography variant="h6" mb={2}>Editar Transacción</Typography>
+
         <FormControl fullWidth margin="dense">
           <InputLabel>Tipo</InputLabel>
           <Select
@@ -85,27 +101,42 @@ export default function EditarTransaccionModal({
             <MenuItem value="documento">Documento</MenuItem>
           </Select>
         </FormControl>
+
         <TextField
           fullWidth margin="dense" label="Concepto"
           name="concepto" value={datos.concepto}
           onChange={handleChange}
         />
+
         <TextField
           fullWidth margin="dense" label="Fecha"
           type="date" name="fecha"
           value={datos.fecha} onChange={handleChange}
           InputLabelProps={{ shrink: true }}
         />
+
         <TextField
           fullWidth margin="dense" label="Monto"
           type="number" name="monto"
           value={datos.monto} onChange={handleChange}
         />
-        <TextField
-          fullWidth margin="dense" label="Cliente ID"
-          name="client_id" type="number"
-          value={datos.client_id} onChange={handleChange}
-        />
+
+        <FormControl fullWidth margin="dense">
+          <InputLabel>Cliente</InputLabel>
+          <Select
+            name="client_id"
+            value={datos.client_id}
+            label="Cliente"
+            onChange={handleChange}
+          >
+            {clientes.map(c => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.nombre} ({c.numero_recibo})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <FormControl fullWidth margin="dense">
           <InputLabel>Forma de Pago</InputLabel>
           <Select
@@ -118,6 +149,7 @@ export default function EditarTransaccionModal({
             <MenuItem value="transferencia">Transferencia</MenuItem>
           </Select>
         </FormControl>
+
         <Box mt={2} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
           <Button onClick={onClose}>Cancelar</Button>
           <Button variant="contained" onClick={handleSave}>
