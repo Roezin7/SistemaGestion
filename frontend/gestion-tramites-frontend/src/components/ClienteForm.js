@@ -1,5 +1,4 @@
 // src/components/ClienteForm.js
-
 import React, { useState } from 'react';
 import { Box, TextField, Button } from '@mui/material';
 import axios from 'axios';
@@ -10,37 +9,46 @@ const ClienteForm = ({ onClienteAgregado }) => {
     integrantes: '',
     numeroRecibo: '',
     estadoTramite: 'Recepción de documentos',
-    fecha_inicio_tramite: new Date().toISOString().slice(0,10)
+    fecha_inicio_tramite: ''
   });
 
   const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-    axios.post('/api/clientes', formData, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      onClienteAgregado(res.data);
-      setFormData({
-        nombre: '',
-        integrantes: '',
-        numeroRecibo: '',
-        estadoTramite: 'Recepción de documentos',
-        fecha_inicio_tramite: new Date().toISOString().slice(0,10)
-      });
-    })
-    .catch(err => console.error(err));
+    axios
+      .post(
+        'https://sistemagestion-pk62.onrender.com/api/clientes',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      )
+      .then((response) => {
+        onClienteAgregado(response.data);
+        setFormData({
+          nombre: '',
+          integrantes: '',
+          numeroRecibo: '',
+          estadoTramite: 'Recepción de documentos',
+          fecha_inicio_tramite: ''
+        });
+      })
+      .catch((error) =>
+        console.error('Error al agregar cliente:', error)
+      );
   };
 
   return (
     <Box
       component="form"
       onSubmit={handleSubmit}
-      sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}
+      mb={2}
+      sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}
     >
       <TextField
         label="Nombre"
@@ -52,9 +60,9 @@ const ClienteForm = ({ onClienteAgregado }) => {
       <TextField
         label="Integrantes"
         name="integrantes"
+        type="number"
         value={formData.integrantes}
         onChange={handleChange}
-        required
       />
       <TextField
         label="Número de Recibo"

@@ -74,7 +74,7 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// PUT: Actualizar datos de un cliente (protegido)
+// PUT: actualizar cliente (protegido)
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   let {
@@ -89,22 +89,25 @@ router.put('/:id', verificarToken, async (req, res) => {
     costo_total_documentos
   } = req.body;
 
-  fecha_cita_cas      = fecha_cita_cas === "" ? null : fecha_cita_cas;
-  fecha_cita_consular = fecha_cita_consular === "" ? null : fecha_cita_consular;
-  fecha_inicio_tramite= fecha_inicio_tramite === "" ? null : fecha_inicio_tramite;
+  // ❗ Convertir cadenas vacías a null para fechas y numéricos:
+  fecha_cita_cas         = fecha_cita_cas === ""         ? null : fecha_cita_cas;
+  fecha_cita_consular    = fecha_cita_consular === ""    ? null : fecha_cita_consular;
+  fecha_inicio_tramite   = fecha_inicio_tramite === ""   ? null : fecha_inicio_tramite;
+  costo_total_tramite    = costo_total_tramite === ""    ? null : costo_total_tramite;
+  costo_total_documentos = costo_total_documentos === "" ? null : costo_total_documentos;
 
   try {
     const result = await db.query(
       `UPDATE clientes SET 
-          nombre                 = COALESCE($1, nombre), 
-          integrantes            = COALESCE($2, integrantes), 
-          numero_recibo          = COALESCE($3, numero_recibo), 
-          estado_tramite         = COALESCE($4, estado_tramite), 
-          fecha_cita_cas         = COALESCE($5, fecha_cita_cas), 
-          fecha_cita_consular    = COALESCE($6, fecha_cita_consular),
-          fecha_inicio_tramite   = COALESCE($7, fecha_inicio_tramite),
-          costo_total_tramite    = COALESCE($8, costo_total_tramite),
-          costo_total_documentos = COALESCE($9, costo_total_documentos)
+         nombre                 = COALESCE($1, nombre), 
+         integrantes            = COALESCE($2, integrantes), 
+         numero_recibo          = COALESCE($3, numero_recibo), 
+         estado_tramite         = COALESCE($4, estado_tramite), 
+         fecha_cita_cas         = COALESCE($5, fecha_cita_cas), 
+         fecha_cita_consular    = COALESCE($6, fecha_cita_consular),
+         fecha_inicio_tramite   = COALESCE($7, fecha_inicio_tramite),
+         costo_total_tramite    = COALESCE($8, costo_total_tramite),
+         costo_total_documentos = COALESCE($9, costo_total_documentos)
        WHERE id = $10
        RETURNING *`,
       [
@@ -121,7 +124,7 @@ router.put('/:id', verificarToken, async (req, res) => {
       ]
     );
     const clienteActualizado = result.rows[0];
-    await registrarHistorial(req, `Se actualizó el cliente con id ${id}`);
+    await registrarHistorial(req, `Se actualizó el cliente with id ${id}`);
     res.json(clienteActualizado);
   } catch (err) {
     res.status(500).json({ error: err.message });

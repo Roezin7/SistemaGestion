@@ -2,20 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Grid,
-  Typography,
-  TextField,
-  Box,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, Grid, Typography, TextField,
+  Box, Paper, List, ListItem, ListItemText, IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
@@ -23,7 +12,7 @@ import axios from 'axios';
 export default function VerInformacionClienteModal({
   open,
   onClose,
-  cliente,
+  cliente,            // { id }
   onClienteUpdated
 }) {
   const [clienteData, setClienteData]     = useState(null);
@@ -36,50 +25,58 @@ export default function VerInformacionClienteModal({
   useEffect(() => {
     if (!open || !cliente?.id) return;
 
-    // 1) Traer datos del cliente
-    axios.get(`/api/clientes/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      setClienteData(res.data);
-      setCostoTotal(res.data.costo_total_tramite || 0);
-      setAbonoRecibido(res.data.costo_total_documentos || 0);
-    })
-    .catch(console.error);
+    // 1) Detalles del cliente completo
+    axios
+      .get(`/api/clientes/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => {
+        const c = res.data;
+        setClienteData(c);
+        setCostoTotal(c.costo_total_tramite || 0);
+        setAbonoRecibido(c.costo_total_documentos || 0);
+      })
+      .catch(console.error);
 
-    // 2) Traer historial de abonos
-    axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => setAbonosList(res.data.abonos))
-    .catch(console.error);
-
+    // 2) Historial de abonos
+    axios
+      .get(`/api/finanzas/abonos/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => setAbonosList(res.data.abonos))
+      .catch(console.error);
   }, [open, cliente]);
 
   const handleGuardar = () => {
-    axios.put(`/api/clientes/${cliente.id}`, {
-      ...clienteData,
-      costo_total_tramite: costoTotal,
-      costo_total_documentos: abonoRecibido
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-      onClienteUpdated(res.data);
-      alert('Datos guardados');
-    })
-    .catch(console.error);
+    axios
+      .put(
+        `/api/clientes/${cliente.id}`,
+        {
+          ...clienteData,
+          costo_total_tramite: costoTotal,
+          costo_total_documentos: abonoRecibido
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then((res) => {
+        onClienteUpdated(res.data);
+        alert('Datos guardados');
+      })
+      .catch(console.error);
   };
 
   const handleDeleteAbono = (abonoId) => {
-    axios.delete(`/api/finanzas/abonos/${abonoId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(() => axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }))
-    .then(res => setAbonosList(res.data.abonos))
-    .catch(console.error);
+    axios
+      .delete(`/api/finanzas/abonos/${abonoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(() =>
+        axios.get(`/api/finanzas/abonos/${cliente.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      )
+      .then((res) => setAbonosList(res.data.abonos))
+      .catch(console.error);
   };
 
   const saldoRestante = parseFloat(costoTotal) - parseFloat(abonoRecibido);
@@ -89,47 +86,69 @@ export default function VerInformacionClienteModal({
       <DialogTitle>Información del Cliente</DialogTitle>
       <DialogContent>
         {clienteData && (
-          <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
-
-            {/* Datos Generales */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* — Datos Generales — */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Datos Generales
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography><strong>Nombre:</strong> {clienteData.nombre}</Typography>
+                  <Typography>
+                    <strong>Nombre:</strong> {clienteData.nombre}
+                  </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography><strong>Integrantes:</strong> {clienteData.integrantes}</Typography>
+                  <Typography>
+                    <strong>Integrantes:</strong> {clienteData.integrantes}
+                  </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography><strong>Estado de Trámite:</strong> {clienteData.estado_tramite}</Typography>
+                  <Typography>
+                    <strong>Número de Recibo:</strong> {clienteData.numero_recibo}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Estado de Trámite:</strong> {clienteData.estado_tramite}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Fecha Cita CAS:</strong>{' '}
+                    {clienteData.fecha_cita_cas?.slice(0, 10) || '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Fecha Cita Consular:</strong>{' '}
+                    {clienteData.fecha_cita_consular?.slice(0, 10) || '—'}
+                  </Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography>
                     <strong>Fecha Inicio Trámite:</strong>{' '}
-                    {clienteData.fecha_inicio_tramite?.slice(0,10)}
+                    {clienteData.fecha_inicio_tramite?.slice(0, 10) || '—'}
                   </Typography>
                 </Grid>
               </Grid>
             </Paper>
 
-            {/* Datos Financieros */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+            {/* — Datos Financieros — */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Datos Financieros
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Costo Total de Trámite:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Typography sx={{ fontWeight: 'bold' }}>Costo Total Trámite:</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
                       type="number"
                       size="small"
                       value={costoTotal}
-                      onChange={e => setCostoTotal(e.target.value)}
-                      sx={{ width:120 }}
+                      onChange={(e) => setCostoTotal(e.target.value)}
+                      sx={{ width: 120 }}
                     />
                     <Button variant="outlined" onClick={handleGuardar}>
                       Guardar
@@ -137,14 +156,14 @@ export default function VerInformacionClienteModal({
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Abono Recibido:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Typography sx={{ fontWeight: 'bold' }}>Abono Recibido:</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
                       type="number"
                       size="small"
                       value={abonoRecibido}
-                      onChange={e => setAbonoRecibido(e.target.value)}
-                      sx={{ width:120 }}
+                      onChange={(e) => setAbonoRecibido(e.target.value)}
+                      sx={{ width: 120 }}
                     />
                     <Button variant="outlined" onClick={handleGuardar}>
                       Guardar
@@ -152,7 +171,7 @@ export default function VerInformacionClienteModal({
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Saldo Restante:</Typography>
+                  <Typography sx={{ fontWeight: 'bold' }}>Saldo Restante:</Typography>
                   <Typography color={saldoRestante < 0 ? 'error' : 'inherit'}>
                     ${saldoRestante.toLocaleString()}
                   </Typography>
@@ -160,14 +179,14 @@ export default function VerInformacionClienteModal({
               </Grid>
             </Paper>
 
-            {/* Historial de Abonos */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+            {/* — Historial de Abonos — */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Historial de Abonos
               </Typography>
               {abonosList.length > 0 ? (
                 <List>
-                  {abonosList.map(a => (
+                  {abonosList.map((a) => (
                     <ListItem
                       key={a.id}
                       secondaryAction={
@@ -189,7 +208,6 @@ export default function VerInformacionClienteModal({
                 </Typography>
               )}
             </Paper>
-
           </Box>
         )}
       </DialogContent>
