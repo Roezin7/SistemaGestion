@@ -15,12 +15,13 @@ export default function VerInformacionClienteModal({
   cliente,                       // { id }
   onClienteUpdated = () => {}
 }) {
-  const [clienteData, setClienteData]   = useState(null);
-  const [autoAbonos, setAutoAbonos]     = useState([]);
+  const [clienteData, setClienteData]       = useState(null);
+  const [autoAbonos, setAutoAbonos]         = useState([]);
   const [totalAutoAbono, setTotalAutoAbono] = useState(0);
-  const [costoTramite, setCostoTramite]       = useState(0);
-  const [costoDocs, setCostoDocs]             = useState(0);
-  const [abonoManual, setAbonoManual]         = useState(0);
+  const [costoTramite, setCostoTramite]     = useState(0);
+  const [costoDocs, setCostoDocs]           = useState(0);
+  const [abonoManual, setAbonoManual]       = useState(0);
+  const [restanteBD, setRestanteBD]         = useState(0);
 
   const token = localStorage.getItem('token');
 
@@ -34,13 +35,14 @@ export default function VerInformacionClienteModal({
     .then(res => {
       const c = res.data;
       setClienteData(c);
-      setCostoTramite(c.costo_total_tramite || 0);
-      setCostoDocs(c.costo_total_documentos || 0);
-      setAbonoManual(c.abono_inicial || 0);
+      setCostoTramite(c.costo_total_tramite  || 0);
+      setCostoDocs   (c.costo_total_documentos || 0);
+      setAbonoManual (c.abono_inicial          || 0);
+      setRestanteBD  (c.restante               || 0);
     })
     .catch(console.error);
 
-    // 2) Traer abonos automáticos del historial
+    // 2) Traer abonos automáticos
     axios.get(`/api/finanzas/abonos/${cliente.id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -57,14 +59,15 @@ export default function VerInformacionClienteModal({
       `/api/clientes/${cliente.id}`,
       {
         ...clienteData,
-        costo_total_tramite: costoTramite,
+        costo_total_tramite:    costoTramite,
         costo_total_documentos: costoDocs,
-        abono_inicial: abonoManual
+        abono_inicial:          abonoManual
       },
       { headers: { Authorization: `Bearer ${token}` } }
     )
     .then(res => {
       onClienteUpdated(res.data);
+      setRestanteBD(res.data.restante);
       alert('Datos guardados');
     })
     .catch(console.error);
@@ -82,16 +85,15 @@ export default function VerInformacionClienteModal({
     .then(res => {
       setAutoAbonos(res.data.abonos);
       setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
+      return axios.get(`/api/clientes/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    })
+    .then(res2 => {
+      setRestanteBD(res2.data.restante);
     })
     .catch(console.error);
   };
-
-  // Nuevo cálculo de saldo
-  const saldoRestante =
-    parseFloat(costoTramite || 0) +
-    parseFloat(costoDocs || 0) -
-    parseFloat(abonoManual || 0) -
-    parseFloat(totalAutoAbono || 0);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -126,7 +128,7 @@ export default function VerInformacionClienteModal({
               </Grid>
             </Paper>
 
-            {/* Datos Financieros Manual */}
+            {/* Costos y Abono Manual */}
             <Paper sx={{ p:2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
                 Costos y Abono Manual
@@ -134,25 +136,21 @@ export default function VerInformacionClienteModal({
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Typography sx={{ fontWeight:'bold' }}>Costo Total Trámite:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                    <TextField
-                      type="number" size="small"
-                      value={costoTramite}
-                      onChange={e => setCostoTramite(e.target.value)}
-                      sx={{ width:120 }}
-                    />
-                  </Box>
+                  <TextField
+                    type="number" size="small"
+                    value={costoTramite}
+                    onChange={e => setCostoTramite(e.target.value)}
+                    sx={{ width:120 }}
+                  />
                 </Grid>
                 <Grid item xs={6}>
                   <Typography sx={{ fontWeight:'bold' }}>Costo de Documentos:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                    <TextField
-                      type="number" size="small"
-                      value={costoDocs}
-                      onChange={e => setCostoDocs(e.target.value)}
-                      sx={{ width:120 }}
-                    />
-                  </Box>
+                  <TextField
+                    type="number" size="small"
+                    value={costoDocs}
+                    onChange={e => setCostoDocs(e.target.value)}
+                    sx={{ width:120 }}
+                  />
                 </Grid>
                 <Grid item xs={6}>
                   <Typography sx={{ fontWeight:'bold' }}>Abono Manual:</Typography>
@@ -204,7 +202,7 @@ export default function VerInformacionClienteModal({
             {/* Saldo Restante */}
             <Paper sx={{ p:2 }}>
               <Typography variant="h6">
-                <strong>Saldo Restante:</strong> ${saldoRestante.toLocaleString()}
+                <strong>Saldo Restante:</strong> ${restanteBD.toLocaleString()}
               </Typography>
             </Paper>
           </Box>
