@@ -15,11 +15,12 @@ export default function VerInformacionClienteModal({
   cliente,                       // { id }
   onClienteUpdated = () => {}
 }) {
-  const [clienteData, setClienteData]       = useState(null);
-  const [abonosList, setAbonosList]         = useState([]);
-  const [costoTotal, setCostoTotal]         = useState(0);
-  const [costoDocumentos, setCostoDocumentos] = useState(0);  // ← nuevo
-  const [abonoRecibido, setAbonoRecibido]   = useState(0);
+  const [clienteData, setClienteData]   = useState(null);
+  const [autoAbonos, setAutoAbonos]     = useState([]);
+  const [totalAutoAbono, setTotalAutoAbono] = useState(0);
+  const [costoTramite, setCostoTramite]       = useState(0);
+  const [costoDocs, setCostoDocs]             = useState(0);
+  const [abonoManual, setAbonoManual]         = useState(0);
 
   const token = localStorage.getItem('token');
 
@@ -33,29 +34,32 @@ export default function VerInformacionClienteModal({
     .then(res => {
       const c = res.data;
       setClienteData(c);
-      setCostoTotal(c.costo_total_tramite   || 0);
-      setCostoDocumentos(c.costo_total_documentos || 0); // usamos campo existente
-      setAbonoRecibido(0);  // empezamos manuales en 0
+      setCostoTramite(c.costo_total_tramite || 0);
+      setCostoDocs(c.costo_total_documentos || 0);
+      setAbonoManual(c.abono_inicial || 0);
     })
     .catch(console.error);
 
-    // 2) Traer historial de abonos (finanzas)
+    // 2) Traer abonos automáticos del historial
     axios.get(`/api/finanzas/abonos/${cliente.id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(res => setAbonosList(res.data.abonos))
+    .then(res => {
+      setAutoAbonos(res.data.abonos);
+      setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
+    })
     .catch(console.error);
 
   }, [open, cliente]);
 
-  // Guardar Costo Trámite + Costo Documentos + Abono Manual
   const handleGuardar = () => {
     axios.put(
       `/api/clientes/${cliente.id}`,
       {
         ...clienteData,
-        costo_total_tramite:   costoTotal,
-        costo_total_documentos: costoDocumentos
+        costo_total_tramite: costoTramite,
+        costo_total_documentos: costoDocs,
+        abono_inicial: abonoManual
       },
       { headers: { Authorization: `Bearer ${token}` } }
     )
@@ -66,7 +70,6 @@ export default function VerInformacionClienteModal({
     .catch(console.error);
   };
 
-  // Eliminar abono financiero
   const handleDeleteAbono = (abonoId) => {
     axios.delete(`/api/finanzas/abonos/${abonoId}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -76,20 +79,19 @@ export default function VerInformacionClienteModal({
         headers: { Authorization: `Bearer ${token}` }
       })
     )
-    .then(res => setAbonosList(res.data.abonos))
+    .then(res => {
+      setAutoAbonos(res.data.abonos);
+      setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
+    })
     .catch(console.error);
   };
 
-  // Suma de abonos extraídos
-  const totalAbonosFinanzas = abonosList
-    .reduce((sum, a) => sum + parseFloat(a.monto), 0);
-
-  // Cálculo final de saldo
-  const saldoTotal = 
-    parseFloat(costoTotal || 0)
-  + parseFloat(costoDocumentos || 0)
-  - parseFloat(abonoRecibido   || 0)
-  - totalAbonosFinanzas;
+  // Nuevo cálculo de saldo
+  const saldoRestante =
+    parseFloat(costoTramite || 0) +
+    parseFloat(costoDocs || 0) -
+    parseFloat(abonoManual || 0) -
+    parseFloat(totalAutoAbono || 0);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -97,77 +99,86 @@ export default function VerInformacionClienteModal({
       <DialogContent>
         {clienteData && (
           <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
-
-            {/* Datos Generales (sin cambios) */}
+            {/* Datos Generales */}
             <Paper sx={{ p:2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
                 Datos Generales
               </Typography>
               <Grid container spacing={2}>
-                {/* ... nombre, integrantes, recibo, estado, fechas ... */}
-              </Grid>
-            </Paper>
-
-            {/* Datos Financieros Manuales */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
-                Datos Financieros
-              </Typography>
-              <Grid container spacing={2}>
-                {/* Costo Total Trámite */}
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Costo Total Trámite:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                    <TextField
-                      type="number" size="small"
-                      value={costoTotal}
-                      onChange={e => setCostoTotal(e.target.value)}
-                      sx={{ width:120 }}
-                    />
-                  </Box>
+                  <Typography><strong>Nombre:</strong> {clienteData.nombre}</Typography>
                 </Grid>
-                {/* ➕ Nuevo: Costo de Documentos */}
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Costo de Documentos:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                    <TextField
-                      type="number" size="small"
-                      value={costoDocumentos}
-                      onChange={e => setCostoDocumentos(e.target.value)}
-                      sx={{ width:120 }}
-                    />
-                  </Box>
+                  <Typography><strong>Integrantes:</strong> {clienteData.integrantes}</Typography>
                 </Grid>
-                {/* Abonos Manuales */}
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Abono Manual:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-                    <TextField
-                      type="number" size="small"
-                      value={abonoRecibido}
-                      onChange={e => setAbonoRecibido(e.target.value)}
-                      sx={{ width:120 }}
-                    />
-                  </Box>
+                  <Typography><strong>Número Recibo:</strong> {clienteData.numero_recibo}</Typography>
                 </Grid>
-                {/* Saldo Total */}
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Saldo Total:</Typography>
-                  <Typography color={saldoTotal < 0 ? 'error' : 'inherit'}>
-                    ${saldoTotal.toLocaleString(undefined,{minimumFractionDigits:2})}
+                  <Typography><strong>Estado Trámite:</strong> {clienteData.estado_tramite}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Fecha Inicio Trámite:</strong>{' '}
+                    {clienteData.fecha_inicio_tramite?.slice(0,10) || '—'}
                   </Typography>
                 </Grid>
               </Grid>
             </Paper>
 
-            {/* Historial de Abonos Extraídos */}
+            {/* Datos Financieros Manual */}
             <Paper sx={{ p:2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
-                Historial de Abonos
+                Costos y Abono Manual
               </Typography>
-              {abonosList.length > 0 ? (
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight:'bold' }}>Costo Total Trámite:</Typography>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                    <TextField
+                      type="number" size="small"
+                      value={costoTramite}
+                      onChange={e => setCostoTramite(e.target.value)}
+                      sx={{ width:120 }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight:'bold' }}>Costo de Documentos:</Typography>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                    <TextField
+                      type="number" size="small"
+                      value={costoDocs}
+                      onChange={e => setCostoDocs(e.target.value)}
+                      sx={{ width:120 }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography sx={{ fontWeight:'bold' }}>Abono Manual:</Typography>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                    <TextField
+                      type="number" size="small"
+                      value={abonoManual}
+                      onChange={e => setAbonoManual(e.target.value)}
+                      sx={{ width:120 }}
+                    />
+                    <Button variant="outlined" onClick={handleGuardar}>
+                      Guardar
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Historial de Abonos Automáticos */}
+            <Paper sx={{ p:2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+                Historial de Abonos (Finanzas)
+              </Typography>
+              {autoAbonos.length > 0 ? (
                 <List>
-                  {abonosList.map(a => (
+                  {autoAbonos.map(a => (
                     <ListItem
                       key={a.id}
                       secondaryAction={
@@ -190,11 +201,16 @@ export default function VerInformacionClienteModal({
               )}
             </Paper>
 
+            {/* Saldo Restante */}
+            <Paper sx={{ p:2 }}>
+              <Typography variant="h6">
+                <strong>Saldo Restante:</strong> ${saldoRestante.toLocaleString()}
+              </Typography>
+            </Paper>
           </Box>
         )}
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={handleGuardar}>Guardar Todo</Button>
         <Button onClick={onClose}>Cerrar</Button>
       </DialogActions>
     </Dialog>

@@ -7,7 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
-const { verificarToken } = require('../routes/auth'); // Usamos el middleware de auth
+const { verificarToken } = require('../routes/auth');
 
 // Configuración de multer para la carga de archivos
 const storage = multer.diskStorage({
@@ -48,7 +48,6 @@ router.get('/:id', verificarToken, async (req, res) => {
 });
 
 // POST: Agregar un nuevo cliente (protegido)
-// Ahora recibe 'fecha_inicio_tramite' desde el body en lugar de usar NOW()
 router.post('/', verificarToken, async (req, res) => {
   const {
     nombre,
@@ -74,7 +73,8 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// PUT: actualizar cliente (protegido)
+// PUT: Actualizar datos de un cliente (protegido)
+// Ahora también manejamos 'abono_inicial' junto a 'costo_total_documentos'
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   let {
@@ -86,15 +86,17 @@ router.put('/:id', verificarToken, async (req, res) => {
     fecha_cita_consular,
     fecha_inicio_tramite,
     costo_total_tramite,
-    costo_total_documentos
+    costo_total_documentos,
+    abono_inicial
   } = req.body;
 
-  // ❗ Convertir cadenas vacías a null para fechas y numéricos:
+  // Convertir cadenas vacías a null para fechas y numéricos
   fecha_cita_cas         = fecha_cita_cas === ""         ? null : fecha_cita_cas;
   fecha_cita_consular    = fecha_cita_consular === ""    ? null : fecha_cita_consular;
   fecha_inicio_tramite   = fecha_inicio_tramite === ""   ? null : fecha_inicio_tramite;
   costo_total_tramite    = costo_total_tramite === ""    ? null : costo_total_tramite;
   costo_total_documentos = costo_total_documentos === "" ? null : costo_total_documentos;
+  abono_inicial          = abono_inicial === ""          ? null : abono_inicial;
 
   try {
     const result = await db.query(
@@ -107,8 +109,9 @@ router.put('/:id', verificarToken, async (req, res) => {
          fecha_cita_consular    = COALESCE($6, fecha_cita_consular),
          fecha_inicio_tramite   = COALESCE($7, fecha_inicio_tramite),
          costo_total_tramite    = COALESCE($8, costo_total_tramite),
-         costo_total_documentos = COALESCE($9, costo_total_documentos)
-       WHERE id = $10
+         costo_total_documentos = COALESCE($9, costo_total_documentos),
+         abono_inicial          = COALESCE($10, abono_inicial)
+       WHERE id = $11
        RETURNING *`,
       [
         nombre,
@@ -120,11 +123,12 @@ router.put('/:id', verificarToken, async (req, res) => {
         fecha_inicio_tramite,
         costo_total_tramite,
         costo_total_documentos,
+        abono_inicial,
         id
       ]
     );
     const clienteActualizado = result.rows[0];
-    await registrarHistorial(req, `Se actualizó el cliente with id ${id}`);
+    await registrarHistorial(req, `Se actualizó el cliente con id ${id}`);
     res.json(clienteActualizado);
   } catch (err) {
     res.status(500).json({ error: err.message });
