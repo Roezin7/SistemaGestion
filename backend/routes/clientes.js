@@ -1,4 +1,4 @@
-// backend/routes/clientes.js
+// src/routes/clientes.js
 
 const express = require('express');
 const router = express.Router();
@@ -9,7 +9,7 @@ const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken } = require('../routes/auth');
 
-// Configuración de multer para la carga de archivos
+// Configuración de multer para subir archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads'));
@@ -20,24 +20,49 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET: Obtener todos los clientes (público)
+// ── GET: Todos los clientes con cálculo dinámico de “restante” ──
 router.get('/', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM clientes');
+    const result = await db.query(`
+      SELECT
+        c.*,
+        COALESCE(c.costo_total_tramite,0)
+      + COALESCE(c.costo_total_documentos,0)
+      - COALESCE(c.abono_inicial,0)
+      - COALESCE((
+          SELECT SUM(f.monto)
+          FROM finanzas f
+          WHERE (f.tipo='abono' OR f.tipo='ingreso')
+            AND f.client_id = c.id
+        ),0) AS restante
+      FROM clientes c
+      ORDER BY c.id;
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET: Obtener un cliente por ID (protegido)
+// ── GET: Un cliente por ID con cálculo dinámico de “restante” ──
 router.get('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await db.query(
-      'SELECT * FROM clientes WHERE id = $1',
-      [id]
-    );
+    const result = await db.query(`
+      SELECT
+        c.*,
+        COALESCE(c.costo_total_tramite,0)
+      + COALESCE(c.costo_total_documentos,0)
+      - COALESCE(c.abono_inicial,0)
+      - COALESCE((
+          SELECT SUM(f.monto)
+          FROM finanzas f
+          WHERE (f.tipo='abono' OR f.tipo='ingreso')
+            AND f.client_id = c.id
+        ),0) AS restante
+      FROM clientes c
+      WHERE c.id = $1;
+    `, [id]);
     if (!result.rows.length) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -47,21 +72,14 @@ router.get('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// POST: Agregar un nuevo cliente (protegido) + recalcular restante
+// ── POST: Crear cliente y recalcular restante ──
 router.post('/', verificarToken, async (req, res) => {
-  const {
-    nombre,
-    integrantes,
-    numeroRecibo,
-    estadoTramite,
-    fecha_inicio_tramite
-  } = req.body;
-
+  const { nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite } = req.body;
   try {
     const insert = await db.query(
       `INSERT INTO clientes
          (nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite, costo_total_tramite)
-       VALUES ($1, $2, $3, $4, $5, NULL)
+       VALUES ($1,$2,$3,$4,$5,NULL)
        RETURNING *`,
       [nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite]
     );
@@ -89,22 +107,16 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// PUT: Actualizar datos de un cliente (protegido) + recalcular restante
+// ── PUT: Actualizar cliente y recalcular restante ──
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   let {
-    nombre,
-    integrantes,
-    numeroRecibo,
-    estadoTramite,
-    fecha_cita_cas,
-    fecha_cita_consular,
-    fecha_inicio_tramite,
-    costo_total_tramite,
-    costo_total_documentos,
-    abono_inicial
+    nombre, integrantes, numeroRecibo, estadoTramite,
+    fecha_cita_cas, fecha_cita_consular, fecha_inicio_tramite,
+    costo_total_tramite, costo_total_documentos, abono_inicial
   } = req.body;
 
+  // Convertir cadenas vacías a null
   fecha_cita_cas         = fecha_cita_cas === ""         ? null : fecha_cita_cas;
   fecha_cita_consular    = fecha_cita_consular === ""    ? null : fecha_cita_consular;
   fecha_inicio_tramite   = fecha_inicio_tramite === ""   ? null : fecha_inicio_tramite;
@@ -127,16 +139,9 @@ router.put('/:id', verificarToken, async (req, res) => {
          abono_inicial          = COALESCE($10, abono_inicial)
        WHERE id = $11`,
       [
-        nombre,
-        integrantes,
-        numeroRecibo,
-        estadoTramite,
-        fecha_cita_cas,
-        fecha_cita_consular,
-        fecha_inicio_tramite,
-        costo_total_tramite,
-        costo_total_documentos,
-        abono_inicial,
+        nombre, integrantes, numeroRecibo, estadoTramite,
+        fecha_cita_cas, fecha_cita_consular, fecha_inicio_tramite,
+        costo_total_tramite, costo_total_documentos, abono_inicial,
         id
       ]
     );
@@ -163,7 +168,7 @@ router.put('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// DELETE: Eliminar un cliente (protegido)
+// ── DELETE: Eliminar cliente ──
 router.delete('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -175,15 +180,14 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// POST: Subir documentación para un cliente (protegido)
+// ── POST: Subir documentos ──
 router.post('/:id/documentos', verificarToken, upload.array('documentos', 5), async (req, res) => {
   const { id } = req.params;
-  const archivos = req.files;
   try {
-    for (let archivo of archivos) {
+    for (let file of req.files) {
       await db.query(
         'INSERT INTO documentos_cliente (cliente_id, ruta_archivo, nombre_archivo) VALUES ($1, $2, $3)',
-        [id, archivo.path, archivo.originalname]
+        [id, file.path, file.originalname]
       );
     }
     await registrarHistorial(req, `Se subieron documentos para cliente id ${id}`);
@@ -193,7 +197,7 @@ router.post('/:id/documentos', verificarToken, upload.array('documentos', 5), as
   }
 });
 
-// PUT: Renombrar un documento (protegido)
+// ── PUT: Renombrar documento ──
 router.put('/documentos/:docId', verificarToken, async (req, res) => {
   const { docId } = req.params;
   const { nuevoNombre } = req.body;
@@ -209,18 +213,13 @@ router.put('/documentos/:docId', verificarToken, async (req, res) => {
   }
 });
 
-// DELETE: Eliminar un documento (protegido)
+// ── DELETE: Eliminar documento ──
 router.delete('/documentos/:docId', verificarToken, async (req, res) => {
   const { docId } = req.params;
   try {
-    const docResult = await db.query('SELECT * FROM documentos_cliente WHERE id = $1', [docId]);
-    if (!docResult.rows.length) {
-      return res.status(404).json({ error: 'Documento no encontrado' });
-    }
-    const documento = docResult.rows[0];
-    if (fs.existsSync(documento.ruta_archivo)) {
-      fs.unlinkSync(documento.ruta_archivo);
-    }
+    const doc = await db.query('SELECT * FROM documentos_cliente WHERE id = $1', [docId]);
+    if (!doc.rows.length) return res.status(404).json({ error: 'Documento no encontrado' });
+    if (fs.existsSync(doc.rows[0].ruta_archivo)) fs.unlinkSync(doc.rows[0].ruta_archivo);
     await db.query('DELETE FROM documentos_cliente WHERE id = $1', [docId]);
     await registrarHistorial(req, `Se eliminó documento id ${docId}`);
     res.json({ message: 'Documento eliminado correctamente' });
@@ -229,11 +228,14 @@ router.delete('/documentos/:docId', verificarToken, async (req, res) => {
   }
 });
 
-// GET: Obtener documentos para un cliente (público)
+// ── GET: Listar documentos de un cliente ──
 router.get('/:id/documentos', async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await db.query('SELECT * FROM documentos_cliente WHERE cliente_id = $1', [id]);
+    const result = await db.query(
+      'SELECT * FROM documentos_cliente WHERE cliente_id = $1',
+      [id]
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
