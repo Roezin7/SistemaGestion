@@ -51,8 +51,7 @@ router.get('/ultimas', verificarToken, async (req, res) => {
     const result = await db.query(
       `SELECT * FROM finanzas
        WHERE fecha BETWEEN $1 AND $2
-       ORDER BY fecha DESC
-       LIMIT 10`,
+       ORDER BY fecha DESC`,
       [fechaInicio, fechaFin]
     );
     res.json(result.rows);
