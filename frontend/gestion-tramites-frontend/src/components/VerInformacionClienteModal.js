@@ -73,15 +73,13 @@ export default function VerInformacionClienteModal({
     .catch(console.error);
   };
 
-  const handleDeleteAbono = (abonoId) => {
-    axios.delete(`/api/finanzas/abonos/${abonoId}`, {
+  const handleDeleteAbono = (idAbono) => {
+    axios.delete(`/api/finanzas/abonos/${idAbono}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(() =>
-      axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    )
+    .then(() => axios.get(`/api/finanzas/abonos/${cliente.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }))
     .then(res => {
       setAutoAbonos(res.data.abonos);
       setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
@@ -89,9 +87,7 @@ export default function VerInformacionClienteModal({
         headers: { Authorization: `Bearer ${token}` }
       });
     })
-    .then(res2 => {
-      setRestanteBD(res2.data.restante);
-    })
+    .then(res2 => setRestanteBD(res2.data.restante))
     .catch(console.error);
   };
 
@@ -101,32 +97,7 @@ export default function VerInformacionClienteModal({
       <DialogContent>
         {clienteData && (
           <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
-            {/* Datos Generales */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
-                Datos Generales
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography><strong>Nombre:</strong> {clienteData.nombre}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography><strong>Integrantes:</strong> {clienteData.integrantes}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography><strong>Número Recibo:</strong> {clienteData.numero_recibo}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography><strong>Estado Trámite:</strong> {clienteData.estado_tramite}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Fecha Inicio Trámite:</strong>{' '}
-                    {clienteData.fecha_inicio_tramite?.slice(0,10) || '—'}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
+            {/* … Datos Generales … */}
 
             {/* Costos y Abono Manual */}
             <Paper sx={{ p:2 }}>
@@ -135,7 +106,7 @@ export default function VerInformacionClienteModal({
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Costo Total Trámite:</Typography>
+                  <Typography>Costo Total Trámite:</Typography>
                   <TextField
                     type="number" size="small"
                     value={costoTramite}
@@ -144,7 +115,7 @@ export default function VerInformacionClienteModal({
                   />
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Costo de Documentos:</Typography>
+                  <Typography>Costo de Documentos:</Typography>
                   <TextField
                     type="number" size="small"
                     value={costoDocs}
@@ -153,8 +124,8 @@ export default function VerInformacionClienteModal({
                   />
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography sx={{ fontWeight:'bold' }}>Abono Manual:</Typography>
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Typography>Abono Manual:</Typography>
+                  <Box sx={{ display:'flex', gap:1, alignItems:'center' }}>
                     <TextField
                       type="number" size="small"
                       value={abonoManual}
@@ -169,12 +140,12 @@ export default function VerInformacionClienteModal({
               </Grid>
             </Paper>
 
-            {/* Historial de Abonos Automáticos */}
+            {/* Historial de Abonos (automáticos) */}
             <Paper sx={{ p:2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
                 Historial de Abonos (Finanzas)
               </Typography>
-              {autoAbonos.length > 0 ? (
+              {autoAbonos.length ? (
                 <List>
                   {autoAbonos.map(a => (
                     <ListItem
@@ -193,16 +164,14 @@ export default function VerInformacionClienteModal({
                   ))}
                 </List>
               ) : (
-                <Typography color="text.secondary">
-                  No hay abonos registrados.
-                </Typography>
+                <Typography>No hay abonos registrados.</Typography>
               )}
             </Paper>
 
-            {/* Saldo Restante */}
+            {/* Saldo Restante (definitivo) */}
             <Paper sx={{ p:2 }}>
               <Typography variant="h6">
-                <strong>Saldo Restante:</strong> ${restanteBD.toLocaleString()}
+                Saldo Restante: <strong>${restanteBD.toLocaleString()}</strong>
               </Typography>
             </Paper>
           </Box>

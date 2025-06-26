@@ -6,12 +6,13 @@ const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken } = require('../routes/auth');
 
-// 2.1) Registrar cualquier transacción (ingreso, egreso, abono, documento, etc.)
+// 2.1) Registrar cualquier transacción
 router.post('/', verificarToken, async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
   try {
     const result = await db.query(
-      `INSERT INTO finanzas (tipo, concepto, fecha, monto, client_id, forma_pago)
+      `INSERT INTO finanzas
+         (tipo, concepto, fecha, monto, client_id, forma_pago)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING *`,
       [tipo, concepto, fecha, monto, client_id || null, forma_pago]
@@ -23,7 +24,7 @@ router.post('/', verificarToken, async (req, res) => {
   }
 });
 
-// 2.2) Listar transacciones con filtro de fechas
+// 2.2) Listar transacciones (filtrado por fecha)
 router.get('/reportes', verificarToken, async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
@@ -41,7 +42,7 @@ router.get('/reportes', verificarToken, async (req, res) => {
   }
 });
 
-// 2.3) Últimas 10 transacciones en un rango
+// 2.3) Últimas 10 transacciones
 router.get('/ultimas', verificarToken, async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
@@ -67,20 +68,17 @@ router.get('/abonos/:clientId', verificarToken, async (req, res) => {
     const total = await db.query(
       `SELECT COALESCE(SUM(monto),0) AS total_abono
        FROM finanzas
-       WHERE (tipo='abono' OR tipo='ingreso') AND client_id = $1`,
+       WHERE (tipo='abono' OR tipo='ingreso') AND client_id=$1`,
       [clientId]
     );
     const list = await db.query(
       `SELECT id, tipo, concepto, fecha, monto, forma_pago
        FROM finanzas
-       WHERE (tipo='abono' OR tipo='ingreso') AND client_id = $1
+       WHERE (tipo='abono' OR tipo='ingreso') AND client_id=$1
        ORDER BY fecha ASC`,
       [clientId]
     );
-    res.json({
-      total_abono: total.rows[0].total_abono,
-      abonos: list.rows
-    });
+    res.json({ total_abono: total.rows[0].total_abono, abonos: list.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -93,30 +91,27 @@ router.get('/documentos/:clientId', verificarToken, async (req, res) => {
     const total = await db.query(
       `SELECT COALESCE(SUM(monto),0) AS total_documento
        FROM finanzas
-       WHERE tipo='documento' AND client_id = $1`,
+       WHERE tipo='documento' AND client_id=$1`,
       [clientId]
     );
     const list = await db.query(
       `SELECT id, concepto, fecha, monto, forma_pago
        FROM finanzas
-       WHERE tipo='documento' AND client_id = $1
+       WHERE tipo='documento' AND client_id=$1
        ORDER BY fecha ASC`,
       [clientId]
     );
-    res.json({
-      total_documento: total.rows[0].total_documento,
-      documentos: list.rows
-    });
+    res.json({ total_documento: total.rows[0].total_documento, documentos: list.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 2.6) Eliminar cualquier transacción
+// 2.6) Eliminar transacción
 router.delete('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM finanzas WHERE id = $1', [id]);
+    await db.query('DELETE FROM finanzas WHERE id=$1', [id]);
     await registrarHistorial(req, `Se eliminó transacción id ${id}`);
     res.json({ message: 'Transacción eliminada correctamente' });
   } catch (err) {
@@ -124,7 +119,7 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// 2.7) Actualizar transacción existente
+// 2.7) Actualizar transacción
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;

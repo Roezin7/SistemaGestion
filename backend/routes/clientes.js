@@ -9,7 +9,7 @@ const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken } = require('../routes/auth');
 
-// Configuración de multer para subir archivos
+// Multer para subida de archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads'));
@@ -20,7 +20,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ── GET: Todos los clientes con cálculo dinámico de “restante” ──
+// ── GET /clientes ──
+// Devuelve todos los clientes con el campo dinámico “restante”
 router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
@@ -44,7 +45,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ── GET: Un cliente por ID con cálculo dinámico de “restante” ──
+// ── GET /clientes/:id ──
+// Devuelve un cliente con su “restante” dinámico
 router.get('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -72,7 +74,8 @@ router.get('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// ── POST: Crear cliente y recalcular restante ──
+// ── POST /clientes ──
+// Crea un cliente (no necesita recalcular: el GET ya lo hace dinámico)
 router.post('/', verificarToken, async (req, res) => {
   const { nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite } = req.body;
   try {
@@ -83,31 +86,16 @@ router.post('/', verificarToken, async (req, res) => {
        RETURNING *`,
       [nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite]
     );
-    const nuevoId = insert.rows[0].id;
-    await registrarHistorial(req, `Se agregó cliente id ${nuevoId}`);
-
-    // Recalcular restante
-    await db.query(
-      `UPDATE clientes SET restante =
-         COALESCE(costo_total_tramite,0)
-       + COALESCE(costo_total_documentos,0)
-       - COALESCE(abono_inicial,0)
-       - COALESCE((
-           SELECT SUM(monto) FROM finanzas
-           WHERE (tipo='abono' OR tipo='ingreso') AND client_id=$1
-         ),0)
-       WHERE id = $1`,
-      [nuevoId]
-    );
-
-    const result = await db.query('SELECT * FROM clientes WHERE id = $1', [nuevoId]);
-    res.json(result.rows[0]);
+    const nuevo = insert.rows[0];
+    await registrarHistorial(req, `Se agregó cliente id ${nuevo.id}`);
+    res.json(nuevo);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── PUT: Actualizar cliente y recalcular restante ──
+// ── PUT /clientes/:id ──
+// Actualiza campos y devuelve el cliente (el GET dinámico se encarga del restante)
 router.put('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   let {
@@ -116,7 +104,7 @@ router.put('/:id', verificarToken, async (req, res) => {
     costo_total_tramite, costo_total_documentos, abono_inicial
   } = req.body;
 
-  // Convertir cadenas vacías a null
+  // Cadenas vacías → null
   fecha_cita_cas         = fecha_cita_cas === ""         ? null : fecha_cita_cas;
   fecha_cita_consular    = fecha_cita_consular === ""    ? null : fecha_cita_consular;
   fecha_inicio_tramite   = fecha_inicio_tramite === ""   ? null : fecha_inicio_tramite;
@@ -147,28 +135,29 @@ router.put('/:id', verificarToken, async (req, res) => {
     );
     await registrarHistorial(req, `Se actualizó cliente id ${id}`);
 
-    // Recalcular restante
-    await db.query(
-      `UPDATE clientes SET restante =
-         COALESCE(costo_total_tramite,0)
-       + COALESCE(costo_total_documentos,0)
-       - COALESCE(abono_inicial,0)
-       - COALESCE((
-           SELECT SUM(monto) FROM finanzas
-           WHERE (tipo='abono' OR tipo='ingreso') AND client_id=$1
-         ),0)
-       WHERE id = $1`,
-      [id]
-    );
-
-    const result = await db.query('SELECT * FROM clientes WHERE id = $1', [id]);
+    // Devolvemos el cliente actualizado
+    const result = await db.query(`
+      SELECT
+        c.*,
+        COALESCE(c.costo_total_tramite,0)
+      + COALESCE(c.costo_total_documentos,0)
+      - COALESCE(c.abono_inicial,0)
+      - COALESCE((
+          SELECT SUM(f.monto)
+          FROM finanzas f
+          WHERE (f.tipo='abono' OR f.tipo='ingreso')
+            AND f.client_id = c.id
+        ),0) AS restante
+      FROM clientes c
+      WHERE c.id = $1;
+    `, [id]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── DELETE: Eliminar cliente ──
+// ── DELETE /clientes/:id ──
 router.delete('/:id', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
