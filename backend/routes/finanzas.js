@@ -87,7 +87,7 @@ router.get('/abonos/:clientId', verificarToken, async (req, res) => {
 });
 
 // 2.5) Historial de documentos por cliente
-router.get('/documentos/:clientId', verifyingToken, async (req, res) => {
+router.get('/documentos/:clientId', verificarToken, async (req, res) => {
   const { clientId } = req.params;
   try {
     const total = await db.query(
