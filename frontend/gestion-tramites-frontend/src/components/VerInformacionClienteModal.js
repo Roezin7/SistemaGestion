@@ -21,7 +21,6 @@ export default function VerInformacionClienteModal({
   const [costoTramite, setCostoTramite]     = useState(0);
   const [costoDocs, setCostoDocs]           = useState(0);
   const [abonoManual, setAbonoManual]       = useState(0);
-  const [restanteBD, setRestanteBD]         = useState(0);
 
   const token = localStorage.getItem('token');
 
@@ -38,7 +37,6 @@ export default function VerInformacionClienteModal({
       setCostoTramite(c.costo_total_tramite  || 0);
       setCostoDocs   (c.costo_total_documentos || 0);
       setAbonoManual (c.abono_inicial          || 0);
-      setRestanteBD  (c.restante               || 0);
     })
     .catch(console.error);
 
@@ -52,7 +50,7 @@ export default function VerInformacionClienteModal({
     })
     .catch(console.error);
 
-  }, [open, cliente]);
+  }, [open, cliente, token]);
 
   const handleGuardar = () => {
     axios.put(
@@ -67,7 +65,6 @@ export default function VerInformacionClienteModal({
     )
     .then(res => {
       onClienteUpdated(res.data);
-      setRestanteBD(res.data.restante);
       alert('Datos guardados');
     })
     .catch(console.error);
@@ -77,19 +74,24 @@ export default function VerInformacionClienteModal({
     axios.delete(`/api/finanzas/abonos/${idAbono}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(() => axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }))
+    .then(() =>
+      axios.get(`/api/finanzas/abonos/${cliente.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    )
     .then(res => {
       setAutoAbonos(res.data.abonos);
       setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
-      return axios.get(`/api/clientes/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
     })
-    .then(res2 => setRestanteBD(res2.data.restante))
     .catch(console.error);
   };
+
+  // **Nuevo cálculo** de Saldo Restante: costoTramite + costoDocs - abonoManual - totalAutoAbono
+  const restanteCalculado =
+    Number(costoTramite || 0) +
+    Number(costoDocs   || 0) -
+    Number(abonoManual || 0) -
+    Number(totalAutoAbono || 0);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -140,7 +142,7 @@ export default function VerInformacionClienteModal({
               </Grid>
             </Paper>
 
-            {/* Historial de Abonos (automáticos) */}
+            {/* Historial de Abonos Automáticos */}
             <Paper sx={{ p:2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
                 Historial de Abonos (Finanzas)
@@ -168,10 +170,10 @@ export default function VerInformacionClienteModal({
               )}
             </Paper>
 
-            {/* Saldo Restante (definitivo) */}
+            {/* Saldo Restante Calculado */}
             <Paper sx={{ p:2 }}>
               <Typography variant="h6">
-                Saldo Restante: <strong>${restanteBD.toLocaleString()}</strong>
+                <strong>Saldo Restante:</strong> ${restanteCalculado.toLocaleString()}
               </Typography>
             </Paper>
           </Box>
