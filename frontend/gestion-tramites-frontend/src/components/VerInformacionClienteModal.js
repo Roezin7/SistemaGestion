@@ -12,7 +12,7 @@ import axios from 'axios';
 export default function VerInformacionClienteModal({
   open,
   onClose = () => {},
-  cliente,                       // { id }
+  cliente,                       
   onClienteUpdated = () => {}
 }) {
   const [clienteData, setClienteData]       = useState(null);
@@ -56,7 +56,6 @@ export default function VerInformacionClienteModal({
     axios.put(
       `/api/clientes/${cliente.id}`,
       {
-        ...clienteData,
         costo_total_tramite:    costoTramite,
         costo_total_documentos: costoDocs,
         abono_inicial:          abonoManual
@@ -86,7 +85,7 @@ export default function VerInformacionClienteModal({
     .catch(console.error);
   };
 
-  // **Nuevo cálculo** de Saldo Restante: costoTramite + costoDocs - abonoManual - totalAutoAbono
+  // Cálculo de Saldo Restante
   const restanteCalculado =
     Number(costoTramite || 0) +
     Number(costoDocs   || 0) -
@@ -98,41 +97,75 @@ export default function VerInformacionClienteModal({
       <DialogTitle>Información del Cliente</DialogTitle>
       <DialogContent>
         {clienteData && (
-          <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
-            {/* … Datos Generales … */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+            {/* Información General */}
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Información General
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Nombre:</strong> {clienteData.nombre}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Número de Recibo:</strong> {clienteData.numero_recibo || '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Integrantes:</strong> {clienteData.integrantes ?? '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Estado de Trámite:</strong> {clienteData.estado_tramite || '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Fecha Inicio Trámite:</strong>{' '}
+                    {clienteData.fecha_inicio_tramite?.slice(0,10) || '—'}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Paper>
 
             {/* Costos y Abono Manual */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Costos y Abono Manual
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography>Costo Total Trámite:</Typography>
+                  <Typography><strong>Costo Total Trámite:</strong></Typography>
                   <TextField
                     type="number" size="small"
                     value={costoTramite}
                     onChange={e => setCostoTramite(e.target.value)}
-                    sx={{ width:120 }}
+                    sx={{ width: 120 }}
                   />
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography>Costo de Documentos:</Typography>
+                  <Typography><strong>Costo de Documentos:</strong></Typography>
                   <TextField
                     type="number" size="small"
                     value={costoDocs}
                     onChange={e => setCostoDocs(e.target.value)}
-                    sx={{ width:120 }}
+                    sx={{ width: 120 }}
                   />
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography>Abono Manual:</Typography>
-                  <Box sx={{ display:'flex', gap:1, alignItems:'center' }}>
+                  <Typography><strong>Abono Manual:</strong></Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     <TextField
                       type="number" size="small"
                       value={abonoManual}
                       onChange={e => setAbonoManual(e.target.value)}
-                      sx={{ width:120 }}
+                      sx={{ width: 120 }}
                     />
                     <Button variant="outlined" onClick={handleGuardar}>
                       Guardar
@@ -143,8 +176,8 @@ export default function VerInformacionClienteModal({
             </Paper>
 
             {/* Historial de Abonos Automáticos */}
-            <Paper sx={{ p:2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight:'bold', mb:1 }}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                 Historial de Abonos (Finanzas)
               </Typography>
               {autoAbonos.length ? (
@@ -166,12 +199,14 @@ export default function VerInformacionClienteModal({
                   ))}
                 </List>
               ) : (
-                <Typography>No hay abonos registrados.</Typography>
+                <Typography color="text.secondary">
+                  No hay abonos registrados.
+                </Typography>
               )}
             </Paper>
 
             {/* Saldo Restante Calculado */}
-            <Paper sx={{ p:2 }}>
+            <Paper sx={{ p: 2 }}>
               <Typography variant="h6">
                 <strong>Saldo Restante:</strong> ${restanteCalculado.toLocaleString()}
               </Typography>
