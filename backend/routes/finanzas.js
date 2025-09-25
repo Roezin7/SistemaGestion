@@ -6,6 +6,29 @@ const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken } = require('../routes/auth');
 
+// ✅ Todos autenticados
+router.use(verificarToken);
+
+// ✅ Reglas por rol:
+// - admin / gerente: todo
+// - empleado: SOLO GET y POST (ver y agregar); NO PUT/PATCH/DELETE
+router.use((req, res, next) => {
+  const rol = req.user?.rol;
+
+  if (rol === 'admin' || rol === 'gerente') return next();
+
+  if (rol === 'empleado') {
+    const method = req.method.toUpperCase();
+    if (method === 'GET' || method === 'POST') return next();
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado: como empleado solo puedes ver y agregar en Finanzas.'
+    });
+  }
+
+  return res.status(403).json({ success: false, message: 'Acceso denegado.' });
+});
+
 // 2.1) Registrar cualquier transacción
 router.post('/', verificarToken, async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;

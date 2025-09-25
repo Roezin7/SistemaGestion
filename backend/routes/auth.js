@@ -48,7 +48,7 @@ router.post('/register', async (req, res) => {
       [nombre, username, hashedPassword, rol || 'usuario']
     );
     // Como en el registro no hay usuario autenticado, registramos el evento sin usuario (o se puede asignar un valor predeterminado)
-    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rol || 'usuario'}`);
+    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rol || 'empleado'}`);
     res.status(201).json({ success: true, user: result.rows[0] });
   } catch (error) {
     console.error(error);
