@@ -5,6 +5,7 @@ import axios from 'axios';
 import { getDefaultDateRange } from '../utils/dateUtils';
 import { currencyFormatter } from '../utils/formatUtils';
 
+
 const BalanceGeneral = () => {
   // Inicializar fechas del mes actual
   const defaultRange = getDefaultDateRange();
