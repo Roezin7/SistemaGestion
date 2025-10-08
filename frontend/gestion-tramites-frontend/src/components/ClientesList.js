@@ -1,28 +1,27 @@
-// src/components/ClientesList.js
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+// ClientesList.js
+import React, { useMemo } from 'react';
 
-const ClientesList = () => {
-  const [clientes, setClientes] = useState([]);
-
-  useEffect(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
-      .then(response => setClientes(response.data))
-      .catch(error => console.error('Error al cargar clientes:', error));
+export default function ClientesList({ items, onDelete /* ...otros props */ }) {
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user')) || null; } catch { return null; }
   }, []);
+  const rol = user?.rol || 'empleado';
+  const canDelete = rol === 'admin' || rol === 'gerente';
 
   return (
-    <div>
-      <h2>Lista de Clientes</h2>
-      <ul>
-        {clientes.map(cliente => (
-          <li key={cliente.id}>
-            {cliente.nombre} - Recibo: {cliente.numero_recibo} - Estado: {cliente.estado_tramite}
-          </li>
-        ))}
-      </ul>
+    <div className="clientes-list">
+      {items.map(cli => (
+        <div key={cli.id} className="cliente-row">
+          <span>{cli.nombre}</span>
+          {/* ...otros campos */}
+
+          {canDelete ? (
+            <button onClick={() => onDelete(cli.id)}>Eliminar</button>
+          ) : (
+            <button disabled title="Sin permiso">Eliminar</button>
+          )}
+        </div>
+      ))}
     </div>
   );
-};
-
-export default ClientesList;
+}

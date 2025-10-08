@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken } = require('../routes/auth');
+const { allowRoles } = require('../middleware');
+
 
 // Multer para subida de archivos
 const storage = multer.diskStorage({
@@ -158,16 +160,20 @@ router.put('/:id', verificarToken, async (req, res) => {
 });
 
 // ── DELETE /clientes/:id ──
-router.delete('/:id', verificarToken, async (req, res) => {
-  const { id } = req.params;
-  try {
-    await db.query('DELETE FROM clientes WHERE id = $1', [id]);
-    await registrarHistorial(req, `Se eliminó cliente id ${id}`);
-    res.json({ message: 'Cliente eliminado correctamente' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.delete('/:id',
+  verificarToken,
+  allowRoles('admin', 'gerente'),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      await db.query('DELETE FROM clientes WHERE id = $1', [id]); // ajusta a tu esquema
+      return res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Error al eliminar cliente' });
+    }
   }
-});
+);
 
 // ── POST: Subir documentos ──
 router.post('/:id/documentos', verificarToken, upload.array('documentos', 5), async (req, res) => {

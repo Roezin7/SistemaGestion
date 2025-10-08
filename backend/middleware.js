@@ -23,4 +23,13 @@ const verificarRol = (...rolesPermitidos) => (req, res, next) => {
 
 const verificarAdmin = verificarRol('admin');
 
-module.exports = { verificarToken, verificarRol, verificarAdmin };
+// ✅ Nuevo: permitir solo roles específicos
+function allowRoles(...rolesPermitidos) {
+  return (req, res, next) => {
+    const rol = req.user?.rol;
+    if (rol && rolesPermitidos.includes(rol)) return next();
+    return res.status(403).json({ error: 'No autorizado' });
+  };
+}
+
+module.exports = { verificarToken, verificarRol, verificarAdmin, allowRoles};
