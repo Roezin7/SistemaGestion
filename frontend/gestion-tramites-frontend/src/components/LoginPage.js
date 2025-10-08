@@ -101,6 +101,9 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
               </Button>
             </Box>
             <Box mt={2}>
+              <Button variant="outlined" color="secondary" fullWidth onClick={() => setOpenRegister(true)}>
+                Registrarse
+              </Button>
             </Box>
           </>
         )}
