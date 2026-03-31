@@ -5,7 +5,7 @@ import {
   Modal, Box, Typography, TextField,
   Button, MenuItem, FormControl, InputLabel, Select
 } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
 const modalStyle = {
   position: 'absolute',
@@ -50,10 +50,7 @@ export default function EditarTransaccionModal({
   // Cargar lista de clientes para el selector
   useEffect(() => {
     if (!open) return;
-    const token = localStorage.getItem('token');
-    axios.get('/api/clientes', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.get('/api/clientes')
     .then(res => {
       setClientes(res.data);
     })
@@ -66,11 +63,9 @@ export default function EditarTransaccionModal({
   };
 
   const handleSave = () => {
-    const token = localStorage.getItem('token');
-    axios.put(
+    api.put(
       `/api/finanzas/${transaccion.id}`,
-      datos,
-      { headers: { Authorization: `Bearer ${token}` } }
+      datos
     )
     .then(res => {
       onTransaccionUpdated(res.data);
@@ -129,6 +124,9 @@ export default function EditarTransaccionModal({
             label="Cliente"
             onChange={handleChange}
           >
+            <MenuItem value="">
+              <em>Sin cliente</em>
+            </MenuItem>
             {clientes.map(c => (
               <MenuItem key={c.id} value={c.id}>
                 {c.nombre} ({c.numero_recibo})

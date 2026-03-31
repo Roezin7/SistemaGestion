@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Grid, Paper, TextField, Button } from '@mui/material';
 import { Bar, Line } from 'react-chartjs-2';
-import axios from 'axios';
+import api from '../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -104,7 +104,7 @@ const Dashboard = () => {
 
   // 1) Fetch KPIs from API
   const fetchKpis = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
+    api.get('/api/kpis', { params: dateRange })
       .then(response => {
         setKpis(response.data);
       })
@@ -113,7 +113,7 @@ const Dashboard = () => {
 
   // 2) Fetch chart data from API
   const fetchChartData = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis/chart', { params: dateRange })
+    api.get('/api/kpis/chart', { params: dateRange })
       .then(response => {
         // set data for ingresos/egresos bar chart
         setChartDataIngresos({
@@ -160,7 +160,7 @@ const Dashboard = () => {
 
   // 3) Fetch all clientes to compute total saldo restante
   const fetchClientes = useCallback(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
+    api.get('/api/clientes')
       .then(res => setClientes(res.data))
       .catch(err => console.error('Error al cargar clientes:', err));
   }, []);

@@ -1,5 +1,5 @@
 // src/components/RepartoSocios.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Grid, Paper,
   TextField, Button, MenuItem,
@@ -7,11 +7,11 @@ import {
   IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
+import api from '../services/api';
 
 const socios = ['Liz', 'Alberto'];
 
-function getLastMonthRange() {
+function getCurrentMonthRange() {
   const now = new Date();
   const firstDayPrev = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDayPrev  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -23,7 +23,7 @@ function getLastMonthRange() {
 
 export default function RepartoSocios() {
   // **1) Inicialización de estados**
-  const [fechas, setFechas] = useState(getLastMonthRange());
+  const [fechas, setFechas] = useState(getCurrentMonthRange());
   const [data, setData] = useState({
     utilidadNeta: 0,
     parteLiz: 0,
@@ -38,33 +38,29 @@ export default function RepartoSocios() {
   });
   const [listaRetiros, setListaRetiros] = useState([]);
 
-  const token = localStorage.getItem('token');
-
   // **2) Función para obtener datos de reparto y retiros**
-  const fetchReparto = () => {
-    axios.get('/api/finanzas/reparto', {
+  const fetchReparto = useCallback(() => {
+    api.get('/api/finanzas/reparto', {
       params: fechas,
-      headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => setData(res.data))
     .catch(console.error);
 
-    axios.get('/api/finanzas/retiros', {
+    api.get('/api/finanzas/retiros', {
       params: fechas,
-      headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => setListaRetiros(res.data))
     .catch(console.error);
-  };
+  }, [fechas]);
 
-  useEffect(fetchReparto, [fechas]);
+  useEffect(() => {
+    fetchReparto();
+  }, [fetchReparto]);
 
   // **3) Registrar un nuevo retiro**
   const handleRetiroSubmit = e => {
     e.preventDefault();
-    axios.post('/api/finanzas/retiros', retiro, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.post('/api/finanzas/retiros', retiro)
     .then(() => {
       setRetiro({ ...retiro, monto: '' });
       fetchReparto();
@@ -74,9 +70,7 @@ export default function RepartoSocios() {
 
   // **4) Eliminar un retiro existente**
   const handleDelete = id => {
-    axios.delete(`/api/finanzas/retiros/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.delete(`/api/finanzas/retiros/${id}`)
     .then(fetchReparto)
     .catch(console.error);
   };

@@ -1,29 +1,30 @@
 // src/components/AdminUsuariosModal.js
-import React, { useState, useEffect } from 'react';
-import { Modal, Box, Typography, List, ListItem, ListItemText, Button, TextField, IconButton } from '@mui/material';
-import axios from 'axios';
-import { API_URL } from '../config';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Modal, Box, Typography, List, ListItem, ListItemText, Button, TextField, IconButton, MenuItem } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RegisterPopup from './RegisterPopup';
+import api from '../services/api';
+
+const ROLES = ['admin', 'gerente', 'empleado'];
 
 const AdminUsuariosModal = ({ open, onClose }) => {
   const [usuarios, setUsuarios] = useState([]);
   const [editingUserId, setEditingUserId] = useState(null);
   const [newRole, setNewRole] = useState('');
+  const [openRegister, setOpenRegister] = useState(false);
 
-  const fetchUsuarios = () => {
-    axios.get(`${API_URL}/api/auth/usuarios`, { 
-      headers: { Authorization: localStorage.getItem('token') }
-    })
+  const fetchUsuarios = useCallback(() => {
+    api.get('/api/auth/usuarios')
       .then(response => setUsuarios(response.data))
       .catch(error => console.error('Error al cargar usuarios:', error));
-  };
+  }, []);
 
   useEffect(() => {
     if (open) {
       fetchUsuarios();
     }
-  }, [open]);
+  }, [open, fetchUsuarios]);
 
   const handleEditClick = (user) => {
     setEditingUserId(user.id);
@@ -31,10 +32,8 @@ const AdminUsuariosModal = ({ open, onClose }) => {
   };
 
   const handleSave = (userId) => {
-    axios.put(`${API_URL}/api/auth/usuarios/${userId}`, { rol: newRole }, { 
-      headers: { Authorization: localStorage.getItem('token') }
-    })
-      .then(response => {
+    api.put(`/api/auth/usuarios/${userId}`, { rol: newRole })
+      .then(() => {
         fetchUsuarios();
         setEditingUserId(null);
         setNewRole('');
@@ -43,10 +42,8 @@ const AdminUsuariosModal = ({ open, onClose }) => {
   };
 
   const handleDelete = (userId) => {
-    axios.delete(`${API_URL}/api/auth/usuarios/${userId}`, {
-      headers: { Authorization: localStorage.getItem('token') }
-    })
-      .then(response => fetchUsuarios())
+    api.delete(`/api/auth/usuarios/${userId}`)
+      .then(() => fetchUsuarios())
       .catch(error => console.error('Error al eliminar usuario:', error));
   };
 
@@ -61,6 +58,9 @@ const AdminUsuariosModal = ({ open, onClose }) => {
         <Typography variant="h6" gutterBottom>
           Administración de Usuarios
         </Typography>
+        <Button variant="contained" onClick={() => setOpenRegister(true)} sx={{ mb: 2 }}>
+          Crear usuario
+        </Button>
         {usuarios.length > 0 ? (
           <List>
             {usuarios.map((user) => (
@@ -72,11 +72,18 @@ const AdminUsuariosModal = ({ open, onClose }) => {
                 {editingUserId === user.id ? (
                   <>
                     <TextField 
+                      select
                       value={newRole}
                       onChange={(e) => setNewRole(e.target.value)}
                       size="small"
                       variant="outlined"
-                    />
+                    >
+                      {ROLES.map((role) => (
+                        <MenuItem key={role} value={role}>
+                          {role}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                     <Button variant="contained" color="primary" onClick={() => handleSave(user.id)} sx={{ ml: 1 }}>
                       Guardar
                     </Button>
@@ -100,6 +107,12 @@ const AdminUsuariosModal = ({ open, onClose }) => {
         ) : (
           <Typography>No hay usuarios disponibles.</Typography>
         )}
+        <RegisterPopup
+          open={openRegister}
+          onClose={() => setOpenRegister(false)}
+          onRegisterSuccess={fetchUsuarios}
+          showRoleSelector
+        />
       </Box>
     </Modal>
   );

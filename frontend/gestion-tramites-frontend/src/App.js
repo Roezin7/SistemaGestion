@@ -37,18 +37,9 @@ function App() {
   const [openAdminUsuarios, setOpenAdminUsuarios] = useState(false);
 
   useEffect(() => {
-    // Detectar recarga de la página y cerrar sesión automáticamente
-    window.onload = () => {
-      console.log("Recarga detectada, cerrando sesión...");
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('lastActivity');
-      setUser(null);
-      setIsAuthenticated(false);
-    };
-
+    const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    if (storedToken && storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
     }
@@ -67,20 +58,21 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log("Cerrando sesión...");
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('lastActivity');
     setUser(null);
     setIsAuthenticated(false);
   };
 
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={() => {
+      const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      if (storedUser) {
+      if (storedToken && storedUser) {
         setUser(JSON.parse(storedUser));
       }
-      setIsAuthenticated(true);
+      setIsAuthenticated(Boolean(storedToken && storedUser));
     }} />;
   }
 

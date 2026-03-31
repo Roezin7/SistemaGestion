@@ -1,7 +1,7 @@
 // src/components/ClienteForm.js
 import React, { useState } from 'react';
 import { Box, TextField, Button } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
 const ClienteForm = ({ onClienteAgregado }) => {
   const [formData, setFormData] = useState({
@@ -18,16 +18,8 @@ const ClienteForm = ({ onClienteAgregado }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios
-      .post(
-        'https://sistemagestion-pk62.onrender.com/api/clientes',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      )
+    api
+      .post('/api/clientes', formData)
       .then((response) => {
         onClienteAgregado(response.data);
         setFormData({

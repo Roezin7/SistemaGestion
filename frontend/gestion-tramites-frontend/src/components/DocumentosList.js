@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Paper, TableContainer, TextField, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import axios from 'axios';
+import { buildApiUrl } from '../config';
+import api from '../services/api';
 
 const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
   const [documentos, setDocumentos] = useState([]);
@@ -11,23 +12,24 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
   const [nuevoNombre, setNuevoNombre] = useState('');
 
   useEffect(() => {
-    axios.get(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}/documentos`)
+    api.get(`/api/clientes/${clienteId}/documentos`)
       .then(response => setDocumentos(response.data))
       .catch(error => console.error('Error al cargar documentos:', error));
   }, [clienteId, refreshFlag]);
 
   const handleRename = (docId) => {
-    axios.put(`https://sistemagestion-pk62.onrender.com/api/clientes/documentos/${docId}`, { nuevoNombre })
-      .then(response => {
+    api.put(`/api/clientes/documentos/${docId}`, { nuevoNombre })
+      .then(() => {
         setEditDocId(null);
+        setNuevoNombre('');
         onRefresh();
       })
       .catch(error => console.error('Error al renombrar documento:', error));
   };
 
   const handleDelete = (docId) => {
-    axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/documentos/${docId}`)
-      .then(response => onRefresh())
+    api.delete(`/api/clientes/documentos/${docId}`)
+      .then(() => onRefresh())
       .catch(error => console.error('Error al eliminar documento:', error));
   };
 
@@ -58,7 +60,7 @@ const DocumentosList = ({ clienteId, refreshFlag, onRefresh }) => {
                   </TableCell>
                   <TableCell>
                     <a 
-                      href={`https://sistemagestion-pk62.onrender.com/api/documentos/${filename}`} 
+                      href={buildApiUrl(`/api/documentos/${filename}`)}
                       target="_blank" 
                       rel="noopener noreferrer"
                     >

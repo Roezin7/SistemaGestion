@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Grid, TextField
 } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function EditarClienteModal({
   open,
@@ -28,10 +28,7 @@ export default function EditarClienteModal({
   // Cuando se abra, cargar datos
   useEffect(() => {
     if (!open || !cliente?.id) return;
-    const token = localStorage.getItem('token');
-    axios.get(`/api/clientes/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.get(`/api/clientes/${cliente.id}`)
     .then(res => {
       const c = res.data;
       setFormData({
@@ -55,10 +52,7 @@ export default function EditarClienteModal({
   };
 
   const handleSave = () => {
-    const token = localStorage.getItem('token');
-    axios.put(`/api/clientes/${cliente.id}`, formData, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.put(`/api/clientes/${cliente.id}`, formData)
     .then(res => {
       // Guardar solo si es función
       if (typeof onClienteUpdated === 'function') {

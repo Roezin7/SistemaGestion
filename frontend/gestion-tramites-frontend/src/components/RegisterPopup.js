@@ -1,23 +1,31 @@
 import React, { useState } from 'react';
-import { Modal, Box, Typography, TextField, Button } from '@mui/material';
-import axios from 'axios';
-import { API_URL } from '../config';
+import { Modal, Box, Typography, TextField, Button, MenuItem } from '@mui/material';
+import api from '../services/api';
 
-const RegisterPopup = ({ open, onClose, onRegisterSuccess }) => {
+const RegisterPopup = ({ open, onClose, onRegisterSuccess, showRoleSelector = false }) => {
   const [nombre, setNombre] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rol, setRol] = useState('empleado');
   const [error, setError] = useState('');
 
   const handleRegister = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/register`, { nombre, username, password });
+      const payload = showRoleSelector
+        ? { nombre, username, password, rol }
+        : { nombre, username, password };
+      const response = await api.post('/api/auth/register', payload);
       if (response.data.success) {
+        setNombre('');
+        setUsername('');
+        setPassword('');
+        setRol('empleado');
+        setError('');
         onRegisterSuccess();
         onClose();
       }
     } catch (err) {
-      setError('Error en el registro');
+      setError(err.response?.data?.message || 'Error en el registro');
       console.error(err);
     }
   };
@@ -58,6 +66,20 @@ const RegisterPopup = ({ open, onClose, onRegisterSuccess }) => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        {showRoleSelector && (
+          <TextField
+            select
+            label="Rol"
+            fullWidth
+            margin="normal"
+            value={rol}
+            onChange={(e) => setRol(e.target.value)}
+          >
+            <MenuItem value="admin">admin</MenuItem>
+            <MenuItem value="gerente">gerente</MenuItem>
+            <MenuItem value="empleado">empleado</MenuItem>
+          </TextField>
+        )}
         <Box mt={2}>
           <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
             Registrarse

@@ -7,7 +7,7 @@ import {
   Box, Paper, List, ListItem, ListItemText, IconButton
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function VerInformacionClienteModal({
   open,
@@ -22,15 +22,11 @@ export default function VerInformacionClienteModal({
   const [costoDocs, setCostoDocs]           = useState(0);
   const [abonoManual, setAbonoManual]       = useState(0);
 
-  const token = localStorage.getItem('token');
-
   useEffect(() => {
     if (!open || !cliente?.id) return;
 
     // 1) Traer datos del cliente
-    axios.get(`/api/clientes/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.get(`/api/clientes/${cliente.id}`)
     .then(res => {
       const c = res.data;
       setClienteData(c);
@@ -41,26 +37,23 @@ export default function VerInformacionClienteModal({
     .catch(console.error);
 
     // 2) Traer abonos automáticos
-    axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.get(`/api/finanzas/abonos/${cliente.id}`)
     .then(res => {
       setAutoAbonos(res.data.abonos);
       setTotalAutoAbono(parseFloat(res.data.total_abono) || 0);
     })
     .catch(console.error);
 
-  }, [open, cliente, token]);
+  }, [open, cliente]);
 
   const handleGuardar = () => {
-    axios.put(
+    api.put(
       `/api/clientes/${cliente.id}`,
       {
         costo_total_tramite:    costoTramite,
         costo_total_documentos: costoDocs,
         abono_inicial:          abonoManual
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
+      }
     )
     .then(res => {
       onClienteUpdated(res.data);
@@ -70,13 +63,9 @@ export default function VerInformacionClienteModal({
   };
 
   const handleDeleteAbono = (idAbono) => {
-    axios.delete(`/api/finanzas/abonos/${idAbono}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    api.delete(`/api/finanzas/abonos/${idAbono}`)
     .then(() =>
-      axios.get(`/api/finanzas/abonos/${cliente.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      api.get(`/api/finanzas/abonos/${cliente.id}`)
     )
     .then(res => {
       setAutoAbonos(res.data.abonos);

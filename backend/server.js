@@ -4,14 +4,33 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { basename } = require('path');
 
 const app = express();
 
-// 🔹 Configurar CORS para permitir solicitudes solo desde Vercel
+const configuredOrigins = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  ...configuredOrigins,
+]);
+
 const corsOptions = {
-  origin: ["https://sistema-gestion-taupe.vercel.app"], // Asegúrate de cambiar esto por la URL final de tu frontend
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Origen no permitido por CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
@@ -21,7 +40,7 @@ app.use(express.urlencoded({ extended: true }));
 // 🔹 Asegurarse de que la carpeta "uploads" exista
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // 🔹 Servir archivos estáticos (para la carga de documentos)
@@ -40,7 +59,7 @@ app.use('/api/auth', authRoutes);
 
 // 🔹 Endpoint para visualizar documentos subidos correctamente
 app.get('/api/documentos/:filename', (req, res) => {
-  const { filename } = req.params;
+  const filename = basename(req.params.filename);
   const filePath = path.join(uploadsDir, filename);
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);

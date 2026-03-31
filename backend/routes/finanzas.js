@@ -4,7 +4,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
-const { verificarToken } = require('../routes/auth');
+const { verificarToken } = require('../middleware');
+
+function normalizarTipo(tipo) {
+  if (tipo === 'documentos') {
+    return 'documento';
+  }
+  return tipo;
+}
 
 // ✅ Todos autenticados
 router.use(verificarToken);
@@ -30,17 +37,18 @@ router.use((req, res, next) => {
 });
 
 // 2.1) Registrar cualquier transacción
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', async (req, res) => {
   const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
+  const tipoNormalizado = normalizarTipo(tipo);
   try {
     const result = await db.query(
       `INSERT INTO finanzas
          (tipo, concepto, fecha, monto, client_id, forma_pago)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING *`,
-      [tipo, concepto, fecha, monto, client_id || null, forma_pago]
+      [tipoNormalizado, concepto, fecha, monto, client_id || null, forma_pago]
     );
-    await registrarHistorial(req, `Se registró ${tipo} id ${result.rows[0].id}`);
+    await registrarHistorial(req, `Se registró ${tipoNormalizado} id ${result.rows[0].id}`);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -48,7 +56,7 @@ router.post('/', verificarToken, async (req, res) => {
 });
 
 // 2.2) Listar transacciones (filtrado por fecha)
-router.get('/reportes', verificarToken, async (req, res) => {
+router.get('/reportes', async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
@@ -66,7 +74,7 @@ router.get('/reportes', verificarToken, async (req, res) => {
 });
 
 // 2.3) Últimas 10 transacciones
-router.get('/ultimas', verificarToken, async (req, res) => {
+router.get('/ultimas', async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
@@ -84,7 +92,7 @@ router.get('/ultimas', verificarToken, async (req, res) => {
 });
 
 // 2.4) Historial de abonos/ingresos por cliente
-router.get('/abonos/:clientId', verificarToken, async (req, res) => {
+router.get('/abonos/:clientId', async (req, res) => {
   const { clientId } = req.params;
   try {
     const total = await db.query(
@@ -107,7 +115,7 @@ router.get('/abonos/:clientId', verificarToken, async (req, res) => {
 });
 
 // 2.5) Historial de documentos por cliente
-router.get('/documentos/:clientId', verificarToken, async (req, res) => {
+router.get('/documentos/:clientId', async (req, res) => {
   const { clientId } = req.params;
   try {
     const total = await db.query(
@@ -129,11 +137,32 @@ router.get('/documentos/:clientId', verificarToken, async (req, res) => {
   }
 });
 
-// 2.6) Eliminar transacción
-router.delete('/:id', verificarToken, async (req, res) => {
+// 2.6) Eliminar abono/ingreso específico desde la vista de cliente
+router.delete('/abonos/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM finanzas WHERE id=$1', [id]);
+    const result = await db.query(
+      "DELETE FROM finanzas WHERE id = $1 AND tipo IN ('abono', 'ingreso') RETURNING id",
+      [id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Abono no encontrado' });
+    }
+    await registrarHistorial(req, `Se eliminó abono/transacción id ${id}`);
+    res.json({ message: 'Abono eliminado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2.7) Eliminar transacción
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.query('DELETE FROM finanzas WHERE id=$1 RETURNING id', [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
     await registrarHistorial(req, `Se eliminó transacción id ${id}`);
     res.json({ message: 'Transacción eliminada correctamente' });
   } catch (err) {
@@ -141,10 +170,11 @@ router.delete('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// 2.7) Actualizar transacción
-router.put('/:id', verificarToken, async (req, res) => {
+// 2.8) Actualizar transacción
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
+  const tipoNormalizado = normalizarTipo(tipo);
   try {
     const result = await db.query(
       `UPDATE finanzas SET
@@ -156,8 +186,11 @@ router.put('/:id', verificarToken, async (req, res) => {
          forma_pago = COALESCE($6, forma_pago)
        WHERE id = $7
        RETURNING *`,
-      [tipo, concepto, fecha, monto, client_id || null, forma_pago, id]
+      [tipoNormalizado, concepto, fecha, monto, client_id || null, forma_pago, id]
     );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
     await registrarHistorial(req, `Se actualizó transacción id ${id}`);
     res.json(result.rows[0]);
   } catch (err) {
@@ -165,8 +198,8 @@ router.put('/:id', verificarToken, async (req, res) => {
   }
 });
 
-// 2.8) Registrar retiros de socios
-router.post('/retiros', verificarToken, async (req, res) => {
+// 2.9) Registrar retiros de socios
+router.post('/retiros', async (req, res) => {
   const { socio, monto, fecha } = req.body;
   try {
     const result = await db.query(
@@ -182,8 +215,8 @@ router.post('/retiros', verificarToken, async (req, res) => {
   }
 });
 
-// 2.9) Obtener reparto de utilidades
-router.get('/reparto', verificarToken, async (req, res) => {
+// 2.10) Obtener reparto de utilidades
+router.get('/reparto', async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
@@ -230,8 +263,8 @@ router.get('/reparto', verificarToken, async (req, res) => {
   }
 });
 
-// 2.10) Listar retiros en rango
-router.get('/retiros', verificarToken, async (req, res) => {
+// 2.11) Listar retiros en rango
+router.get('/retiros', async (req, res) => {
   let { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio) fechaInicio = '1970-01-01';
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
@@ -250,11 +283,14 @@ router.get('/retiros', verificarToken, async (req, res) => {
   }
 });
 
-// 2.11) Eliminar un retiro
-router.delete('/retiros/:id', verificarToken, async (req, res) => {
+// 2.12) Eliminar un retiro
+router.delete('/retiros/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM retiros_socios WHERE id = $1', [id]);
+    const result = await db.query('DELETE FROM retiros_socios WHERE id = $1 RETURNING id', [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Retiro no encontrado' });
+    }
     await registrarHistorial(req, `Se eliminó retiro id ${id}`);
     res.json({ success: true });
   } catch (err) {

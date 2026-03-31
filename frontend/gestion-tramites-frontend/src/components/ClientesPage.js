@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -22,6 +21,7 @@ import ClienteForm from './ClienteForm';
 import EditarClienteModal from './EditarClienteModal';
 import SubirDocumentosModal from './SubirDocumentosModal';
 import VerInformacionClienteModal from './VerInformacionClienteModal';
+import api from '../services/api';
 
 const ClientesPage = () => {
   const [clientes, setClientes] = useState([]);
@@ -33,15 +33,15 @@ const ClientesPage = () => {
   const [documentosModalOpen, setDocumentosModalOpen] = useState(false);
   const [verInfoModalOpen, setVerInfoModalOpen] = useState(false);
 
-  useEffect(() => {
-    cargarClientes();
-  }, []);
-
-  const cargarClientes = () => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
+  const cargarClientes = useCallback(() => {
+    api.get('/api/clientes')
       .then(response => setClientes(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
-  };
+  }, []);
+
+  useEffect(() => {
+    cargarClientes();
+  }, [cargarClientes]);
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -53,18 +53,18 @@ const ClientesPage = () => {
     setOrderBy(property);
   };
 
-  const sortedClientes = clientes.sort((a, b) => {
+  const sortedClientes = [...clientes].sort((a, b) => {
     if (orderBy === 'nombre') {
       if (order === 'asc') return a.nombre.localeCompare(b.nombre);
       else return b.nombre.localeCompare(a.nombre);
     }
     if (orderBy === 'numero_recibo') {
-      if (order === 'asc') return a.numero_recibo.localeCompare(b.numero_recibo);
-      else return b.numero_recibo.localeCompare(a.numero_recibo);
+      if (order === 'asc') return (a.numero_recibo || '').localeCompare(b.numero_recibo || '');
+      else return (b.numero_recibo || '').localeCompare(a.numero_recibo || '');
     }
     if (orderBy === 'integrantes') {
-      if (order === 'asc') return a.integrantes - b.integrantes;
-      else return b.integrantes - a.integrantes;
+      if (order === 'asc') return Number(a.integrantes || 0) - Number(b.integrantes || 0);
+      else return Number(b.integrantes || 0) - Number(a.integrantes || 0);
     }
     return 0;
   });
@@ -78,9 +78,7 @@ const ClientesPage = () => {
 
   const handleDeleteCliente = (clienteId) => {
     if (window.confirm('¿Seguro que desea eliminar este cliente?')) {
-      axios.delete(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
+      api.delete(`/api/clientes/${clienteId}`)
         .then(() => {
           setClientes(clientes.filter(c => c.id !== clienteId));
         })
@@ -227,7 +225,7 @@ const ClientesPage = () => {
             open={editarModalOpen}
             onClose={() => setEditarModalOpen(false)}
             cliente={selectedCliente}
-            onClienteActualizado={handleClienteActualizado}
+            onClienteUpdated={handleClienteActualizado}
           />
           <SubirDocumentosModal
             open={documentosModalOpen}

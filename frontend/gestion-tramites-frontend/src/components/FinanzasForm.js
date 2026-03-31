@@ -1,7 +1,7 @@
 // src/components/FinanzasForm.js
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
 const FinanzasForm = () => {
   const [formData, setFormData] = useState({
@@ -16,7 +16,7 @@ const FinanzasForm = () => {
   const [clients, setClients] = useState([]);
 
   useEffect(() => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/clientes')
+    api.get('/api/clientes')
       .then(response => setClients(response.data))
       .catch(error => console.error('Error al cargar clientes:', error));
   }, []);
@@ -27,9 +27,7 @@ const FinanzasForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('https://sistemagestion-pk62.onrender.com/api/finanzas', formData, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
+    api.post('/api/finanzas', formData)
       .then(response => {
         alert('Transacción guardada');
         setFormData({ tipo: 'ingreso', concepto: '', fecha: '', monto: '', client_id: '', forma_pago: 'efectivo' });
@@ -51,7 +49,7 @@ const FinanzasForm = () => {
         <MenuItem value="egreso">Egreso</MenuItem>
         <MenuItem value="abono">Abono</MenuItem>
         <MenuItem value="retiro">Retiro</MenuItem>
-        <MenuItem value="documentos">Documentos</MenuItem>
+        <MenuItem value="documento">Documento</MenuItem>
       </TextField>
       <TextField 
         label="Concepto" 

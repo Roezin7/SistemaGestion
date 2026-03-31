@@ -1,17 +1,14 @@
 // src/components/HistorialModal.js
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
-import { API_URL } from '../config';
+import api from '../services/api';
 
 const HistorialModal = ({ open, onClose }) => {
   const [historial, setHistorial] = useState([]);
 
   useEffect(() => {
     if (open) {
-      axios.get(`${API_URL}/api/auth/historial`, {
-        headers: { Authorization: localStorage.getItem('token') }
-      })
+      api.get('/api/auth/historial')
         .then(response => setHistorial(response.data))
         .catch(error => console.error('Error al cargar historial:', error));
     }
@@ -34,7 +31,7 @@ const HistorialModal = ({ open, onClose }) => {
               <ListItem key={item.id}>
                 <ListItemText
                   primary={item.descripcion}
-                  secondary={`${item.username} - ${new Date(item.fecha).toLocaleString()}`}
+                  secondary={`${item.username || 'Sistema'} - ${new Date(item.fecha).toLocaleString()}`}
                 />
               </ListItem>
             ))}

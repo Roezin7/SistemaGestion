@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
-import axios from 'axios';
-import { API_URL } from '../config'; // Asegúrate de que API_URL esté configurada correctamente
 import logo from '../assets/newlogo.png';
 import RegisterPopup from './RegisterPopup'; // Nuevo componente para registro
+import api from '../services/api';
 
 const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
   const [username, setUsername] = useState('');
@@ -11,17 +10,25 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [openRegister, setOpenRegister] = useState(false);
+  const [setupRequired, setSetupRequired] = useState(false);
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    if (storedToken && storedUser) {
       setUser(JSON.parse(storedUser));
+    } else {
+      setUser(null);
     }
+
+    api.get('/api/auth/setup-status')
+      .then(({ data }) => setSetupRequired(Boolean(data.setupRequired)))
+      .catch(() => setSetupRequired(false));
   }, []);
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, { username, password });
+      const response = await api.post('/api/auth/login', { username, password });
       if (response.data.success) {
         const { token, userId, username, rol } = response.data;
         // Guardar token y datos del usuario en localStorage
@@ -39,6 +46,7 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('lastActivity');
     setUser(null);
   };
 
@@ -55,11 +63,11 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
               Rol: {user.rol}
             </Typography>
             <Box mt={2} display="flex" flexDirection="column" gap={2}>
-              <Button variant="contained" color="primary" fullWidth onClick={() => onShowHistorial()}>
+              <Button variant="contained" color="primary" fullWidth onClick={() => onShowHistorial?.()}>
                 Ver Historial de Cambios
               </Button>
               {user.rol === 'admin' && (
-                <Button variant="contained" color="secondary" fullWidth onClick={() => onShowAdminPanel()}>
+                <Button variant="contained" color="secondary" fullWidth onClick={() => onShowAdminPanel?.()}>
                   Administrar Roles y Modificar Historial
                 </Button>
               )}
@@ -100,6 +108,13 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
                 Iniciar Sesión
               </Button>
             </Box>
+            {setupRequired && (
+              <Box mt={2}>
+                <Button variant="outlined" fullWidth onClick={() => setOpenRegister(true)}>
+                  Crear usuario inicial
+                </Button>
+              </Box>
+            )}
             <Box mt={2}>
             </Box>
           </>
@@ -108,7 +123,10 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
       <RegisterPopup 
         open={openRegister} 
         onClose={() => setOpenRegister(false)} 
-        onRegisterSuccess={() => { alert("Registro exitoso, ahora inicia sesión"); }}
+        onRegisterSuccess={() => {
+          alert("Registro exitoso, ahora inicia sesión");
+          setSetupRequired(false);
+        }}
       />
     </Container>
   );

@@ -1,9 +1,9 @@
 // src/components/BalanceGeneral.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, TextField, Button, Paper, Grid } from '@mui/material';
-import axios from 'axios';
 import { getDefaultDateRange } from '../utils/dateUtils';
 import { currencyFormatter } from '../utils/formatUtils';
+import api from '../services/api';
 
 
 const BalanceGeneral = () => {
@@ -20,8 +20,8 @@ const BalanceGeneral = () => {
   // para que su referencia no cambie en cada render.
   // La dependencia es "dateRange" para que se actualice cuando cambien las fechas.
   const fetchBalance = useCallback(() => {
-    axios
-      .get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: dateRange })
+    api
+      .get('/api/kpis', { params: dateRange })
       .then((response) => setBalance(response.data.balance_general))
       .catch((error) => console.error('Error al cargar balance:', error));
   }, [dateRange]);

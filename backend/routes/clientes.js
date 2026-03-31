@@ -7,8 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
-const { verificarToken } = require('../routes/auth');
-const { allowRoles } = require('../middleware');
+const { verificarToken, allowRoles } = require('../middleware');
 
 
 // Multer para subida de archivos
@@ -24,7 +23,7 @@ const upload = multer({ storage });
 
 // ── GET /clientes ──
 // Devuelve todos los clientes con el campo dinámico “restante”
-router.get('/', async (req, res) => {
+router.get('/', verificarToken, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
@@ -115,7 +114,7 @@ router.put('/:id', verificarToken, async (req, res) => {
   abono_inicial          = abono_inicial === ""          ? null : abono_inicial;
 
   try {
-    await db.query(
+    const updateResult = await db.query(
       `UPDATE clientes SET
          nombre                 = COALESCE($1, nombre),
          integrantes            = COALESCE($2, integrantes),
@@ -135,6 +134,9 @@ router.put('/:id', verificarToken, async (req, res) => {
         id
       ]
     );
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
     await registrarHistorial(req, `Se actualizó cliente id ${id}`);
 
     // Devolvemos el cliente actualizado
@@ -166,7 +168,11 @@ router.delete('/:id',
   async (req, res) => {
     const { id } = req.params;
     try {
-      await db.query('DELETE FROM clientes WHERE id = $1', [id]); // ajusta a tu esquema
+      const result = await db.query('DELETE FROM clientes WHERE id = $1', [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Cliente no encontrado' });
+      }
+      await registrarHistorial(req, `Se eliminó cliente id ${id}`);
       return res.json({ success: true });
     } catch (e) {
       console.error(e);
@@ -224,7 +230,7 @@ router.delete('/documentos/:docId', verificarToken, async (req, res) => {
 });
 
 // ── GET: Listar documentos de un cliente ──
-router.get('/:id/documentos', async (req, res) => {
+router.get('/:id/documentos', verificarToken, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await db.query(

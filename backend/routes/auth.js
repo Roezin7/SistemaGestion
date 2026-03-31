@@ -2,53 +2,103 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../db'); // Conexión a la base de datos
+const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
+const { verificarToken, verificarAdmin, extraerToken, esRolValido } = require('../middleware');
+
 const router = express.Router();
+const SECRET_KEY = process.env.SECRET_KEY || 'clave_secreta';
 
-const SECRET_KEY = process.env.SECRET_KEY || "clave_secreta"; // Cambiar en producción
+function normalizarTexto(valor) {
+  return typeof valor === 'string' ? valor.trim() : '';
+}
 
-// Middleware para verificar el token
-const verificarToken = (req, res, next) => {
-  let token = req.header('Authorization');
-  if (!token) return res.status(401).json({ success: false, message: 'Acceso denegado' });
-  if (token.startsWith('Bearer ')) {
-    token = token.slice(7).trim();
+function resolverRolRegistro({ totalUsuarios, rolSolicitado, usuarioSolicitante }) {
+  if (totalUsuarios === 0) {
+    return 'admin';
   }
+
+  if (!usuarioSolicitante || usuarioSolicitante.rol !== 'admin') {
+    return null;
+  }
+
+  return rolSolicitado || 'empleado';
+}
+
+async function obtenerUsuarioDesdeToken(req) {
+  const token = extraerToken(req);
+  if (!token) {
+    return null;
+  }
+
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
+    return jwt.verify(token, SECRET_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function contarAdmins() {
+  const result = await db.query("SELECT COUNT(*)::int AS total FROM usuarios WHERE rol = 'admin'");
+  return result.rows[0]?.total || 0;
+}
+
+router.get('/setup-status', async (req, res) => {
+  try {
+    const result = await db.query('SELECT COUNT(*)::int AS total FROM usuarios');
+    res.json({ setupRequired: result.rows[0]?.total === 0 });
   } catch (error) {
-    res.status(401).json({ success: false, message: 'Token inválido' });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al verificar el estado inicial del sistema' });
   }
-};
+});
 
-// Middleware para verificar que el usuario es administrador
-const verificarAdmin = (req, res, next) => {
-  if (req.user && req.user.rol === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({ success: false, message: 'Acceso denegado: Solo administradores pueden realizar esta acción.' });
-  }
-};
-
-// 🚀 Registro de Usuarios
+// Registro de usuarios.
+// - Primer usuario del sistema: permitido sin autenticación y se crea como admin.
+// - Siguientes usuarios: solo un admin autenticado puede crearlos.
 router.post('/register', async (req, res) => {
-  const { nombre, username, password, rol } = req.body;
+  const nombre = normalizarTexto(req.body.nombre);
+  const username = normalizarTexto(req.body.username);
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const rolSolicitado = normalizarTexto(req.body.rol);
+
+  if (!nombre || !username || !password) {
+    return res.status(400).json({ success: false, message: 'Nombre, usuario y contraseña son obligatorios' });
+  }
+
+  if (rolSolicitado && !esRolValido(rolSolicitado)) {
+    return res.status(400).json({ success: false, message: 'Rol inválido' });
+  }
+
   try {
-    // Verificar que el usuario no exista
-    const existingUser = await db.query('SELECT * FROM usuarios WHERE username = $1', [username]);
+    const totalUsuariosResult = await db.query('SELECT COUNT(*)::int AS total FROM usuarios');
+    const totalUsuarios = totalUsuariosResult.rows[0]?.total || 0;
+    const usuarioSolicitante = await obtenerUsuarioDesdeToken(req);
+    const rolFinal = resolverRolRegistro({ totalUsuarios, rolSolicitado, usuarioSolicitante });
+
+    if (!rolFinal) {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo un administrador puede registrar nuevos usuarios',
+      });
+    }
+
+    const existingUser = await db.query('SELECT id FROM usuarios WHERE username = $1', [username]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ success: false, message: 'El usuario ya existe' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await db.query(
       'INSERT INTO usuarios (nombre, username, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, username, rol',
-      [nombre, username, hashedPassword, rol || 'usuario']
+      [nombre, username, hashedPassword, rolFinal]
     );
-    // Como en el registro no hay usuario autenticado, registramos el evento sin usuario (o se puede asignar un valor predeterminado)
-    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rol || 'empleado'}`);
+
+    if (usuarioSolicitante) {
+      req.user = usuarioSolicitante;
+    }
+    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rolFinal}`);
+
     res.status(201).json({ success: true, user: result.rows[0] });
   } catch (error) {
     console.error(error);
@@ -56,20 +106,28 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 🚀 Inicio de Sesión
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const username = normalizarTexto(req.body.username);
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+
   try {
     const result = await db.query('SELECT * FROM usuarios WHERE username = $1', [username]);
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
     }
+
     const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
     }
-    const token = jwt.sign({ id: user.id, username: user.username, rol: user.rol }, SECRET_KEY, { expiresIn: '1h' });
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, rol: user.rol },
+      SECRET_KEY,
+      { expiresIn: '1h' }
+    );
+
     res.json({ success: true, token, userId: user.id, username: user.username, rol: user.rol });
   } catch (error) {
     console.error(error);
@@ -77,11 +135,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 🚀 Obtener el historial de cambios totales del sistema (solo admin)
 router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT h.*, u.username FROM historial_cambios h JOIN usuarios u ON h.usuario_id = u.id ORDER BY h.fecha DESC'
+      `SELECT h.*, COALESCE(u.username, 'Sistema') AS username
+       FROM historial_cambios h
+       LEFT JOIN usuarios u ON h.usuario_id = u.id
+       ORDER BY h.fecha DESC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -90,7 +150,6 @@ router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   }
 });
 
-// 🚀 Eliminar un registro del historial (solo admin)
 router.delete('/historial/:id', verificarToken, verificarAdmin, async (req, res) => {
   const { id } = req.params;
   try {
@@ -102,7 +161,6 @@ router.delete('/historial/:id', verificarToken, verificarAdmin, async (req, res)
   }
 });
 
-// 🚀 Eliminar todo el historial (solo admin)
 router.delete('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM historial_cambios');
@@ -113,7 +171,6 @@ router.delete('/historial', verificarToken, verificarAdmin, async (req, res) => 
   }
 });
 
-// 🚀 Obtener la lista de usuarios (solo admin)
 router.get('/usuarios', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query('SELECT id, nombre, username, rol, created_at FROM usuarios ORDER BY id');
@@ -124,18 +181,32 @@ router.get('/usuarios', verificarToken, verificarAdmin, async (req, res) => {
   }
 });
 
-// 🚀 Actualizar el rol de un usuario (solo admin)
 router.put('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) => {
   const { id } = req.params;
-  const { rol } = req.body;
+  const rol = normalizarTexto(req.body.rol);
+
+  if (!esRolValido(rol)) {
+    return res.status(400).json({ success: false, message: 'Rol inválido' });
+  }
+
   try {
+    const usuarioActual = await db.query('SELECT id, rol FROM usuarios WHERE id = $1', [id]);
+    if (usuarioActual.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    if (Number(id) === req.user.id && usuarioActual.rows[0].rol === 'admin' && rol !== 'admin') {
+      const totalAdmins = await contarAdmins();
+      if (totalAdmins <= 1) {
+        return res.status(400).json({ success: false, message: 'No puedes quitar el último administrador del sistema' });
+      }
+    }
+
     const result = await db.query(
       'UPDATE usuarios SET rol = $1 WHERE id = $2 RETURNING id, nombre, username, rol',
       [rol, id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
-    }
+
     await registrarHistorial(req, `Se actualizó el rol del usuario con id ${id} a ${rol}`);
     res.json({ success: true, usuario: result.rows[0] });
   } catch (error) {
@@ -144,10 +215,26 @@ router.put('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) => 
   }
 });
 
-// 🚀 Eliminar un usuario (solo admin)
 router.delete('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) => {
   const { id } = req.params;
+
+  if (Number(id) === req.user.id) {
+    return res.status(400).json({ success: false, message: 'No puedes eliminar tu propio usuario' });
+  }
+
   try {
+    const usuarioActual = await db.query('SELECT id, rol FROM usuarios WHERE id = $1', [id]);
+    if (usuarioActual.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    if (usuarioActual.rows[0].rol === 'admin') {
+      const totalAdmins = await contarAdmins();
+      if (totalAdmins <= 1) {
+        return res.status(400).json({ success: false, message: 'No puedes eliminar el último administrador del sistema' });
+      }
+    }
+
     await db.query('DELETE FROM usuarios WHERE id = $1', [id]);
     await registrarHistorial(req, `Se eliminó el usuario con id ${id}`);
     res.json({ success: true, message: 'Usuario eliminado' });
@@ -158,4 +245,3 @@ router.delete('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) 
 });
 
 module.exports = router;
-module.exports.verificarToken = verificarToken;

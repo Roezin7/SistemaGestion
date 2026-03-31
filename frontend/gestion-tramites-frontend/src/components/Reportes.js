@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, Paper, Grid, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Card, CardContent } from '@mui/material';
-import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { getDefaultDateRange } from '../utils/dateUtils';
 import { currencyFormatter } from '../utils/formatUtils';
+import api from '../services/api';
 
 const Reportes = () => {
   const defaultRange = getDefaultDateRange();
@@ -22,11 +22,11 @@ const Reportes = () => {
   });
 
   const handleBuscar = () => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/reportes', { params: { fechaInicio, fechaFin } })
+    api.get('/api/finanzas/reportes', { params: { fechaInicio, fechaFin } })
       .then(response => setDatos(response.data))
       .catch(error => console.error('Error al cargar reportes:', error));
 
-    axios.get('https://sistemagestion-pk62.onrender.com/api/kpis', { params: { fechaInicio, fechaFin } })
+    api.get('/api/kpis', { params: { fechaInicio, fechaFin } })
       .then(response => setKpis(response.data))
       .catch(error => console.error('Error al cargar KPI:', error));
   };
@@ -115,7 +115,9 @@ const Reportes = () => {
                   {kpi.label}
                 </Typography>
                 <Typography variant="h5" sx={{ textAlign: 'center', color: '#555555' }}>
-                  {currencyFormatter.format(kpi.value)}
+                  {kpi.label === 'Trámites Mensuales'
+                    ? kpi.value
+                    : currencyFormatter.format(kpi.value || 0)}
                 </Typography>
               </CardContent>
             </Card>

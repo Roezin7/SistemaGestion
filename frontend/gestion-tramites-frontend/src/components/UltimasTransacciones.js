@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -16,10 +16,10 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import axios from 'axios';
 import { getDefaultDateRange } from '../utils/dateUtils';  
 import { currencyFormatter } from '../utils/formatUtils';  
 import EditarTransaccionModal from './EditarTransaccionModal';  
+import api from '../services/api';
 
 const UltimasTransacciones = () => {
   const defaultRange = getDefaultDateRange();
@@ -33,18 +33,17 @@ const UltimasTransacciones = () => {
   const [openEditarModal, setOpenEditarModal] = useState(false);
 
   // Cargar transacciones desde el backend
-  const cargarTransacciones = () => {
-    axios.get('https://sistemagestion-pk62.onrender.com/api/finanzas/ultimas', {
+  const cargarTransacciones = useCallback(() => {
+    api.get('/api/finanzas/ultimas', {
       params: dateRange,
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     .then(response => setTransacciones(response.data))
     .catch(error => console.error('Error al cargar transacciones:', error));
-  };
+  }, [dateRange]);
 
   useEffect(() => {
     cargarTransacciones();
-  }, [dateRange]);
+  }, [cargarTransacciones]);
 
   const handleDateChange = (e) => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
@@ -53,9 +52,7 @@ const UltimasTransacciones = () => {
   // Eliminar transacción
   const handleDeleteTransaccion = (id) => {
     if (window.confirm('¿Desea eliminar esta transacción?')) {
-      axios.delete(`https://sistemagestion-pk62.onrender.com/api/finanzas/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
+      api.delete(`/api/finanzas/${id}`)
       .then(() => {
         cargarTransacciones(); // Recargar lista tras eliminar
       })

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { verificarToken } = require('../middleware');
 
 function getDatesArray(startDate, endDate) {
   const arr = [];
@@ -12,8 +13,20 @@ function getDatesArray(startDate, endDate) {
   return arr;
 }
 
+function normalizarFecha(valor) {
+  if (!valor) {
+    return '';
+  }
+
+  if (valor instanceof Date) {
+    return valor.toISOString().slice(0, 10);
+  }
+
+  return String(valor).slice(0, 10);
+}
+
 // Endpoint principal de KPIs
-router.get('/', async (req, res) => {
+router.get('/', verificarToken, async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
     if (!fechaInicio || fechaInicio.trim() === '') {
@@ -59,14 +72,15 @@ router.get('/', async (req, res) => {
     const balance_general = ingreso_total - egreso_total;
 
     const tramitesResult = await db.query(
-      'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion BETWEEN $1 AND $2',
+      'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion::date BETWEEN $1 AND $2',
       [fechaInicio, fechaFin]
     );
 
     const saldoRestanteResult = await db.query(
       `SELECT COALESCE(SUM(
-          c.costo_total_tramite
+          COALESCE(c.costo_total_tramite, 0)
           + COALESCE(c.costo_total_documentos, 0)
+          - COALESCE(c.abono_inicial, 0)
           - COALESCE(f.total_abono, 0)
         ), 0) as saldo_restante
        FROM clientes c
@@ -105,8 +119,8 @@ router.get('/', async (req, res) => {
       documentos_totales,
       egreso_total,
       balance_general,
-      tramites_mensuales: tramitesResult.rows[0].tramites_mensuales,
-      saldo_restante: saldoRestanteResult.rows[0].saldo_restante,
+      tramites_mensuales: parseInt(tramitesResult.rows[0].tramites_mensuales, 10) || 0,
+      saldo_restante: parseFloat(saldoRestanteResult.rows[0].saldo_restante) || 0,
     });
   } catch (err) {
     console.error('Error en /api/kpis:', err);
@@ -115,7 +129,7 @@ router.get('/', async (req, res) => {
 });
 
 // Endpoint para el gráfico de KPIs
-router.get('/chart', async (req, res) => {
+router.get('/chart', verificarToken, async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
     if (!fechaInicio || fechaInicio.trim() === '') {
@@ -147,11 +161,11 @@ router.get('/chart', async (req, res) => {
 
     // Datos diarios de trámites
     const tramitesQuery = await db.query(
-      `SELECT fecha_creacion as fecha, COUNT(*) as total
+      `SELECT fecha_creacion::date as fecha, COUNT(*) as total
        FROM clientes
-       WHERE fecha_creacion BETWEEN $1 AND $2
-       GROUP BY fecha_creacion
-       ORDER BY fecha_creacion`,
+       WHERE fecha_creacion::date BETWEEN $1 AND $2
+       GROUP BY fecha_creacion::date
+       ORDER BY fecha_creacion::date`,
       [fechaInicio, fechaFin]
     );
 
@@ -174,10 +188,22 @@ router.get('/chart', async (req, res) => {
       }
     });
 
-    const labels   = ingresosQuery.rows.map(r => r.fecha);
-    const ingresos = ingresosQuery.rows.map(r => parseFloat(r.total));
-    const egresos  = egresosQuery.rows.map(r => parseFloat(r.total));
-    const tramites = tramitesQuery.rows.map(r => parseInt(r.total, 10));
+    const labels = getDatesArray(new Date(fechaInicio), new Date(fechaFin))
+      .map((date) => date.toISOString().slice(0, 10));
+
+    const ingresosPorFecha = new Map(
+      ingresosQuery.rows.map((row) => [normalizarFecha(row.fecha), parseFloat(row.total)])
+    );
+    const egresosPorFecha = new Map(
+      egresosQuery.rows.map((row) => [normalizarFecha(row.fecha), parseFloat(row.total)])
+    );
+    const tramitesPorFecha = new Map(
+      tramitesQuery.rows.map((row) => [normalizarFecha(row.fecha), parseInt(row.total, 10)])
+    );
+
+    const ingresos = labels.map((label) => ingresosPorFecha.get(label) || 0);
+    const egresos = labels.map((label) => egresosPorFecha.get(label) || 0);
+    const tramites = labels.map((label) => tramitesPorFecha.get(label) || 0);
 
     res.json({
       totalEfectivo,

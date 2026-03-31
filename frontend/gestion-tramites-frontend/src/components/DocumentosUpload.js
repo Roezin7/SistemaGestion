@@ -1,9 +1,9 @@
 // src/components/DocumentosUpload.js
 import React, { useState } from 'react';
 import { Box, Button, InputLabel } from '@mui/material';
-import axios from 'axios';
+import api from '../services/api';
 
-const DocumentosUpload = ({ clienteId }) => {
+const DocumentosUpload = ({ clienteId, onUploadComplete = () => {} }) => {
   const [archivos, setArchivos] = useState([]);
 
   const handleChange = (e) => {
@@ -12,17 +12,23 @@ const DocumentosUpload = ({ clienteId }) => {
 
   const handleUpload = (e) => {
     e.preventDefault();
+    if (!archivos.length) {
+      return;
+    }
     const formData = new FormData();
     for (let i = 0; i < archivos.length; i++) {
       formData.append('documentos', archivos[i]);
     }
-    axios.post(`https://sistemagestion-pk62.onrender.com/api/clientes/${clienteId}/documentos`, formData, {
+    api.post(`/api/clientes/${clienteId}/documentos`, formData, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'multipart/form-data'
       }
     })
-      .then(response => alert('Documentos subidos exitosamente'))
+      .then(() => {
+        alert('Documentos subidos exitosamente');
+        setArchivos([]);
+        onUploadComplete();
+      })
       .catch(error => console.error('Error al subir documentos:', error));
   };
 
