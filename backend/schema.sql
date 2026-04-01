@@ -1,7 +1,14 @@
-DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, usuarios, clientes CASCADE;
+DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, usuarios, clientes, oficinas CASCADE;
+
+CREATE TABLE oficinas (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(120) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     nombre VARCHAR(100) NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -12,6 +19,7 @@ CREATE TABLE usuarios (
 
 CREATE TABLE historial_cambios (
     id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
     descripcion TEXT NOT NULL,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -19,6 +27,7 @@ CREATE TABLE historial_cambios (
 
 CREATE TABLE clientes (
     id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     nombre VARCHAR(255) NOT NULL,
     integrantes INTEGER,
     numero_recibo VARCHAR(100),
@@ -35,6 +44,7 @@ CREATE TABLE clientes (
 CREATE TABLE documentos_cliente (
     id SERIAL PRIMARY KEY,
     cliente_id INTEGER REFERENCES clientes(id) ON DELETE CASCADE,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     ruta_archivo VARCHAR(255) NOT NULL,
     nombre_archivo VARCHAR(255) NOT NULL,
     fecha_subida TIMESTAMP DEFAULT NOW()
@@ -42,6 +52,7 @@ CREATE TABLE documentos_cliente (
 
 CREATE TABLE finanzas (
     id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     tipo VARCHAR(20) NOT NULL,
     concepto VARCHAR(255),
     fecha DATE NOT NULL,
@@ -53,7 +64,16 @@ CREATE TABLE finanzas (
 
 CREATE TABLE retiros_socios (
     id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
     socio VARCHAR(100) NOT NULL,
     monto NUMERIC(10,2) NOT NULL,
     fecha DATE NOT NULL
 );
+
+CREATE INDEX idx_usuarios_oficina_id ON usuarios (oficina_id);
+CREATE INDEX idx_historial_cambios_oficina_id_fecha ON historial_cambios (oficina_id, fecha DESC);
+CREATE INDEX idx_clientes_oficina_id ON clientes (oficina_id);
+CREATE INDEX idx_documentos_cliente_oficina_id_cliente_id ON documentos_cliente (oficina_id, cliente_id);
+CREATE INDEX idx_finanzas_oficina_id_fecha ON finanzas (oficina_id, fecha);
+CREATE INDEX idx_finanzas_oficina_id_client_id ON finanzas (oficina_id, client_id);
+CREATE INDEX idx_retiros_socios_oficina_id_fecha ON retiros_socios (oficina_id, fecha);

@@ -44,9 +44,25 @@ function LoginPage({ onLoginSuccess }) {
     try {
       const response = await api.post('/api/auth/login', { username, password });
       if (response.data.success) {
-        const { token, userId, username: storedUsername, rol } = response.data;
+        const {
+          token,
+          userId,
+          username: storedUsername,
+          rol,
+          oficinaId,
+          oficina,
+        } = response.data;
         localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify({ userId, username: storedUsername, rol }));
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            userId,
+            username: storedUsername,
+            rol,
+            oficinaId,
+            oficina,
+          })
+        );
         onLoginSuccess();
       }
     } catch (err) {

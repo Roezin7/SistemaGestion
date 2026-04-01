@@ -25,7 +25,6 @@ function normalizarFecha(valor) {
   return String(valor).slice(0, 10);
 }
 
-// Endpoint principal de KPIs
 router.get('/', verificarToken, async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
@@ -36,17 +35,25 @@ router.get('/', verificarToken, async (req, res) => {
       fechaFin = new Date().toISOString().slice(0, 10);
     }
 
+    const oficinaId = req.user.oficina_id;
+
     const ingresosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_ingresos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
-      ['ingreso', fechaInicio, fechaFin]
+      `SELECT COALESCE(SUM(monto), 0) AS total_ingresos
+       FROM finanzas
+       WHERE oficina_id = $1 AND tipo = $2 AND fecha BETWEEN $3 AND $4`,
+      [oficinaId, 'ingreso', fechaInicio, fechaFin]
     );
     const abonosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_abonos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
-      ['abono', fechaInicio, fechaFin]
+      `SELECT COALESCE(SUM(monto), 0) AS total_abonos
+       FROM finanzas
+       WHERE oficina_id = $1 AND tipo = $2 AND fecha BETWEEN $3 AND $4`,
+      [oficinaId, 'abono', fechaInicio, fechaFin]
     );
     const documentosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_documentos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
-      ['documento', fechaInicio, fechaFin]
+      `SELECT COALESCE(SUM(monto), 0) AS total_documentos
+       FROM finanzas
+       WHERE oficina_id = $1 AND tipo = $2 AND fecha BETWEEN $3 AND $4`,
+      [oficinaId, 'documento', fechaInicio, fechaFin]
     );
 
     const ingreso_total =
@@ -58,13 +65,18 @@ router.get('/', verificarToken, async (req, res) => {
     const documentos_totales = parseFloat(documentosResult.rows[0].total_documentos);
 
     const egresosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_egresos FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
-      ['egreso', fechaInicio, fechaFin]
+      `SELECT COALESCE(SUM(monto), 0) AS total_egresos
+       FROM finanzas
+       WHERE oficina_id = $1 AND tipo = $2 AND fecha BETWEEN $3 AND $4`,
+      [oficinaId, 'egreso', fechaInicio, fechaFin]
     );
     const retirosResult = await db.query(
-      'SELECT COALESCE(SUM(monto), 0) as total_retiros FROM finanzas WHERE tipo = $1 AND fecha BETWEEN $2 AND $3',
-      ['retiro', fechaInicio, fechaFin]
+      `SELECT COALESCE(SUM(monto), 0) AS total_retiros
+       FROM finanzas
+       WHERE oficina_id = $1 AND tipo = $2 AND fecha BETWEEN $3 AND $4`,
+      [oficinaId, 'retiro', fechaInicio, fechaFin]
     );
+
     const egreso_total =
       parseFloat(egresosResult.rows[0].total_egresos) +
       parseFloat(retirosResult.rows[0].total_retiros);
@@ -72,8 +84,11 @@ router.get('/', verificarToken, async (req, res) => {
     const balance_general = ingreso_total - egreso_total;
 
     const tramitesResult = await db.query(
-      'SELECT COUNT(*) as tramites_mensuales FROM clientes WHERE fecha_creacion::date BETWEEN $1 AND $2',
-      [fechaInicio, fechaFin]
+      `SELECT COUNT(*) AS tramites_mensuales
+       FROM clientes
+       WHERE oficina_id = $1
+         AND fecha_creacion::date BETWEEN $2 AND $3`,
+      [oficinaId, fechaInicio, fechaFin]
     );
 
     const saldoRestanteResult = await db.query(
@@ -82,27 +97,32 @@ router.get('/', verificarToken, async (req, res) => {
           + COALESCE(c.costo_total_documentos, 0)
           - COALESCE(c.abono_inicial, 0)
           - COALESCE(f.total_abono, 0)
-        ), 0) as saldo_restante
+        ), 0) AS saldo_restante
        FROM clientes c
        LEFT JOIN (
-         SELECT client_id, SUM(monto) as total_abono
+         SELECT oficina_id, client_id, SUM(monto) AS total_abono
          FROM finanzas
-         WHERE tipo IN ('abono', 'ingreso', 'documento')
-         GROUP BY client_id
-       ) f ON c.id = f.client_id`
+         WHERE oficina_id = $1
+           AND tipo IN ('abono', 'ingreso', 'documento')
+         GROUP BY oficina_id, client_id
+       ) f ON c.id = f.client_id AND c.oficina_id = f.oficina_id
+       WHERE c.oficina_id = $1`,
+      [oficinaId]
     );
 
-    // ingresos por forma de pago
     const formaPagoResult = await db.query(
       `SELECT forma_pago, SUM(monto) AS total
        FROM finanzas
-       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2
+       WHERE oficina_id = $1
+         AND tipo = 'ingreso'
+         AND fecha BETWEEN $2 AND $3
        GROUP BY forma_pago`,
-      [fechaInicio, fechaFin]
+      [oficinaId, fechaInicio, fechaFin]
     );
+
     let totalEfectivo = 0;
     let totalTransferencia = 0;
-    formaPagoResult.rows.forEach(row => {
+    formaPagoResult.rows.forEach((row) => {
       if (row.forma_pago === 'efectivo') {
         totalEfectivo = parseFloat(row.total);
       }
@@ -128,7 +148,6 @@ router.get('/', verificarToken, async (req, res) => {
   }
 });
 
-// Endpoint para el gráfico de KPIs
 router.get('/chart', verificarToken, async (req, res) => {
   try {
     let { fechaInicio, fechaFin } = req.query;
@@ -139,47 +158,53 @@ router.get('/chart', verificarToken, async (req, res) => {
       fechaFin = new Date().toISOString().slice(0, 10);
     }
 
-    // Datos diarios de ingresos
+    const oficinaId = req.user.oficina_id;
+
     const ingresosQuery = await db.query(
-      `SELECT fecha, SUM(monto) as total
+      `SELECT fecha, SUM(monto) AS total
        FROM finanzas
-       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2
+       WHERE oficina_id = $1
+         AND tipo = 'ingreso'
+         AND fecha BETWEEN $2 AND $3
        GROUP BY fecha
        ORDER BY fecha`,
-      [fechaInicio, fechaFin]
+      [oficinaId, fechaInicio, fechaFin]
     );
 
-    // Datos diarios de egresos
     const egresosQuery = await db.query(
-      `SELECT fecha, SUM(monto) as total
+      `SELECT fecha, SUM(monto) AS total
        FROM finanzas
-       WHERE tipo = 'egreso' AND fecha BETWEEN $1 AND $2
+       WHERE oficina_id = $1
+         AND tipo = 'egreso'
+         AND fecha BETWEEN $2 AND $3
        GROUP BY fecha
        ORDER BY fecha`,
-      [fechaInicio, fechaFin]
+      [oficinaId, fechaInicio, fechaFin]
     );
 
-    // Datos diarios de trámites
     const tramitesQuery = await db.query(
-      `SELECT fecha_creacion::date as fecha, COUNT(*) as total
+      `SELECT fecha_creacion::date AS fecha, COUNT(*) AS total
        FROM clientes
-       WHERE fecha_creacion::date BETWEEN $1 AND $2
+       WHERE oficina_id = $1
+         AND fecha_creacion::date BETWEEN $2 AND $3
        GROUP BY fecha_creacion::date
        ORDER BY fecha_creacion::date`,
-      [fechaInicio, fechaFin]
+      [oficinaId, fechaInicio, fechaFin]
     );
 
-    // Repetimos el cálculo de ingresos por forma de pago aquí
     const formaPagoResult = await db.query(
       `SELECT forma_pago, SUM(monto) AS total
        FROM finanzas
-       WHERE tipo = 'ingreso' AND fecha BETWEEN $1 AND $2
+       WHERE oficina_id = $1
+         AND tipo = 'ingreso'
+         AND fecha BETWEEN $2 AND $3
        GROUP BY forma_pago`,
-      [fechaInicio, fechaFin]
+      [oficinaId, fechaInicio, fechaFin]
     );
+
     let totalEfectivo = 0;
     let totalTransferencia = 0;
-    formaPagoResult.rows.forEach(row => {
+    formaPagoResult.rows.forEach((row) => {
       if (row.forma_pago === 'efectivo') {
         totalEfectivo = parseFloat(row.total);
       }
@@ -211,7 +236,7 @@ router.get('/chart', verificarToken, async (req, res) => {
       labels,
       ingresos,
       egresos,
-      tramites
+      tramites,
     });
   } catch (err) {
     console.error('Error en /api/kpis/chart:', err);

@@ -1,13 +1,19 @@
 // backend/utils/historial.js
 const db = require('../db');
 
-async function registrarHistorial(req, descripcion) {
+async function registrarHistorial(req, descripcion, options = {}) {
   try {
-    // Si req.user está definido, se utiliza su id; de lo contrario, se registra como "Sistema" (usuario_id nulo)
-    const usuarioId = req.user && req.user.id ? req.user.id : null;
-    await db.query(
-      'INSERT INTO historial_cambios (usuario_id, descripcion) VALUES ($1, $2)',
-      [usuarioId, descripcion]
+    const usuarioId = options.usuarioId ?? (req.user && req.user.id ? req.user.id : null);
+    const oficinaId = options.oficinaId ?? (req.user && req.user.oficina_id ? req.user.oficina_id : null);
+    const executor = options.client || db;
+
+    if (!oficinaId) {
+      return;
+    }
+
+    await executor.query(
+      'INSERT INTO historial_cambios (usuario_id, oficina_id, descripcion) VALUES ($1, $2, $3)',
+      [usuarioId, oficinaId, descripcion]
     );
   } catch (error) {
     console.error("Error registrando historial:", error);

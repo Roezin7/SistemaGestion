@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { basename } = require('path');
 
 const app = express();
 
@@ -97,9 +96,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// 🔹 Servir archivos estáticos (para la carga de documentos)
-app.use('/uploads', express.static(uploadsDir));
-
 // 🔹 Rutas existentes
 const clientesRoutes = require('./routes/clientes');
 const finanzasRoutes = require('./routes/finanzas');
@@ -122,17 +118,6 @@ app.use((err, req, res, next) => {
   }
 
   return next(err);
-});
-
-// 🔹 Endpoint para visualizar documentos subidos correctamente
-app.get('/api/documentos/:filename', (req, res) => {
-  const filename = basename(req.params.filename);
-  const filePath = path.join(uploadsDir, filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send('Documento no encontrado');
-  }
 });
 
 // 🔹 Ruta de prueba para verificar que el backend funciona

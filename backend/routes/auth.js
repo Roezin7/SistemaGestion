@@ -4,6 +4,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
+const {
+  NOMBRE_OFICINA_POR_DEFECTO,
+  resolverOficinaObjetivo,
+} = require('../utils/oficinas');
 const { verificarToken, verificarAdmin, extraerToken, esRolValido } = require('../middleware');
 
 const router = express.Router();
@@ -25,6 +29,16 @@ function resolverRolRegistro({ totalUsuarios, rolSolicitado, usuarioSolicitante 
   return rolSolicitado || 'empleado';
 }
 
+function construirPayloadToken(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    rol: user.rol,
+    oficina_id: user.oficina_id,
+    oficina_nombre: user.oficina_nombre,
+  };
+}
+
 async function obtenerUsuarioDesdeToken(req) {
   const token = extraerToken(req);
   if (!token) {
@@ -32,14 +46,32 @@ async function obtenerUsuarioDesdeToken(req) {
   }
 
   try {
-    return jwt.verify(token, SECRET_KEY);
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const result = await db.query(
+      `SELECT
+         u.id,
+         u.nombre,
+         u.username,
+         u.rol,
+         u.oficina_id,
+         o.nombre AS oficina_nombre
+       FROM usuarios u
+       LEFT JOIN oficinas o ON o.id = u.oficina_id
+       WHERE u.id = $1`,
+      [decoded.id]
+    );
+
+    return result.rows[0] || null;
   } catch {
     return null;
   }
 }
 
-async function contarAdmins() {
-  const result = await db.query("SELECT COUNT(*)::int AS total FROM usuarios WHERE rol = 'admin'");
+async function contarAdmins(oficinaId) {
+  const result = await db.query(
+    "SELECT COUNT(*)::int AS total FROM usuarios WHERE rol = 'admin' AND oficina_id = $1",
+    [oficinaId]
+  );
   return result.rows[0]?.total || 0;
 }
 
@@ -53,14 +85,25 @@ router.get('/setup-status', async (req, res) => {
   }
 });
 
-// Registro de usuarios.
-// - Primer usuario del sistema: permitido sin autenticación y se crea como admin.
-// - Siguientes usuarios: solo un admin autenticado puede crearlos.
+router.get('/oficinas', async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT id, nombre, created_at FROM oficinas ORDER BY nombre ASC'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al obtener oficinas' });
+  }
+});
+
 router.post('/register', async (req, res) => {
   const nombre = normalizarTexto(req.body.nombre);
   const username = normalizarTexto(req.body.username);
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   const rolSolicitado = normalizarTexto(req.body.rol);
+  const oficinaId = req.body.oficinaId ? Number.parseInt(req.body.oficinaId, 10) : null;
+  const oficinaNombre = normalizarTexto(req.body.oficinaNombre);
 
   if (!nombre || !username || !password) {
     return res.status(400).json({ success: false, message: 'Nombre, usuario y contraseña son obligatorios' });
@@ -70,39 +113,74 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Rol inválido' });
   }
 
+  if (req.body.oficinaId && !oficinaId) {
+    return res.status(400).json({ success: false, message: 'La oficina seleccionada no es válida' });
+  }
+
+  const client = await db.getClient();
+
   try {
-    const totalUsuariosResult = await db.query('SELECT COUNT(*)::int AS total FROM usuarios');
+    await client.query('BEGIN');
+
+    const totalUsuariosResult = await client.query('SELECT COUNT(*)::int AS total FROM usuarios');
     const totalUsuarios = totalUsuariosResult.rows[0]?.total || 0;
     const usuarioSolicitante = await obtenerUsuarioDesdeToken(req);
     const rolFinal = resolverRolRegistro({ totalUsuarios, rolSolicitado, usuarioSolicitante });
 
     if (!rolFinal) {
+      await client.query('ROLLBACK');
       return res.status(403).json({
         success: false,
         message: 'Solo un administrador puede registrar nuevos usuarios',
       });
     }
 
-    const existingUser = await db.query('SELECT id FROM usuarios WHERE username = $1', [username]);
+    const existingUser = await client.query('SELECT id FROM usuarios WHERE username = $1', [username]);
     if (existingUser.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ success: false, message: 'El usuario ya existe' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await db.query(
-      'INSERT INTO usuarios (nombre, username, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, username, rol',
-      [nombre, username, hashedPassword, rolFinal]
+    const oficina = await resolverOficinaObjetivo(
+      {
+        oficinaId,
+        oficinaNombre: totalUsuarios === 0 ? (oficinaNombre || NOMBRE_OFICINA_POR_DEFECTO) : oficinaNombre,
+        oficinaFallbackId: usuarioSolicitante?.oficina_id || null,
+      },
+      client
     );
 
-    if (usuarioSolicitante) {
-      req.user = usuarioSolicitante;
-    }
-    await registrarHistorial(req, `Se registró el usuario "${username}" con rol ${rolFinal}`);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await client.query(
+      `INSERT INTO usuarios (nombre, username, password, rol, oficina_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, nombre, username, rol, oficina_id`,
+      [nombre, username, hashedPassword, rolFinal, oficina.id]
+    );
 
-    res.status(201).json({ success: true, user: result.rows[0] });
+    const usuarioCreado = {
+      ...result.rows[0],
+      oficina_nombre: oficina.nombre,
+    };
+
+    await registrarHistorial(
+      { user: usuarioSolicitante || null },
+      `Se registró el usuario "${username}" con rol ${rolFinal} en ${oficina.nombre}`,
+      {
+        oficinaId: oficina.id,
+        usuarioId: usuarioSolicitante?.id || usuarioCreado.id,
+        client,
+      }
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, user: usuarioCreado });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error(error);
-    res.status(500).json({ success: false, message: 'Error al registrar usuario' });
+    res.status(500).json({ success: false, message: error.message || 'Error al registrar usuario' });
+  } finally {
+    client.release();
   }
 });
 
@@ -111,7 +189,16 @@ router.post('/login', async (req, res) => {
   const password = typeof req.body.password === 'string' ? req.body.password : '';
 
   try {
-    const result = await db.query('SELECT * FROM usuarios WHERE username = $1', [username]);
+    const result = await db.query(
+      `SELECT
+         u.*,
+         o.nombre AS oficina_nombre
+       FROM usuarios u
+       LEFT JOIN oficinas o ON o.id = u.oficina_id
+       WHERE u.username = $1`,
+      [username]
+    );
+
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
     }
@@ -122,13 +209,17 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
     }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, rol: user.rol },
-      SECRET_KEY,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign(construirPayloadToken(user), SECRET_KEY, { expiresIn: '8h' });
 
-    res.json({ success: true, token, userId: user.id, username: user.username, rol: user.rol });
+    res.json({
+      success: true,
+      token,
+      userId: user.id,
+      username: user.username,
+      rol: user.rol,
+      oficinaId: user.oficina_id,
+      oficina: user.oficina_nombre,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Error en el inicio de sesión' });
@@ -138,10 +229,16 @@ router.post('/login', async (req, res) => {
 router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT h.*, COALESCE(u.username, 'Sistema') AS username
+      `SELECT
+         h.*,
+         COALESCE(u.username, 'Sistema') AS username,
+         o.nombre AS oficina_nombre
        FROM historial_cambios h
        LEFT JOIN usuarios u ON h.usuario_id = u.id
-       ORDER BY h.fecha DESC`
+       LEFT JOIN oficinas o ON h.oficina_id = o.id
+       WHERE h.oficina_id = $1
+       ORDER BY h.fecha DESC`,
+      [req.user.oficina_id]
     );
     res.json(result.rows);
   } catch (error) {
@@ -153,7 +250,15 @@ router.get('/historial', verificarToken, verificarAdmin, async (req, res) => {
 router.delete('/historial/:id', verificarToken, verificarAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM historial_cambios WHERE id = $1', [id]);
+    const result = await db.query(
+      'DELETE FROM historial_cambios WHERE id = $1 AND oficina_id = $2 RETURNING id',
+      [id, req.user.oficina_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Registro no encontrado' });
+    }
+
     res.json({ success: true, message: 'Registro del historial eliminado' });
   } catch (error) {
     console.error(error);
@@ -163,7 +268,7 @@ router.delete('/historial/:id', verificarToken, verificarAdmin, async (req, res)
 
 router.delete('/historial', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    await db.query('DELETE FROM historial_cambios');
+    await db.query('DELETE FROM historial_cambios WHERE oficina_id = $1', [req.user.oficina_id]);
     res.json({ success: true, message: 'Historial eliminado correctamente' });
   } catch (error) {
     console.error(error);
@@ -173,7 +278,21 @@ router.delete('/historial', verificarToken, verificarAdmin, async (req, res) => 
 
 router.get('/usuarios', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    const result = await db.query('SELECT id, nombre, username, rol, created_at FROM usuarios ORDER BY id');
+    const result = await db.query(
+      `SELECT
+         u.id,
+         u.nombre,
+         u.username,
+         u.rol,
+         u.created_at,
+         u.oficina_id,
+         o.nombre AS oficina_nombre
+       FROM usuarios u
+       LEFT JOIN oficinas o ON o.id = u.oficina_id
+       WHERE u.oficina_id = $1
+       ORDER BY u.id`,
+      [req.user.oficina_id]
+    );
     res.json(result.rows);
   } catch (error) {
     console.error(error);
@@ -190,21 +309,28 @@ router.put('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) => 
   }
 
   try {
-    const usuarioActual = await db.query('SELECT id, rol FROM usuarios WHERE id = $1', [id]);
+    const usuarioActual = await db.query(
+      'SELECT id, rol, oficina_id FROM usuarios WHERE id = $1 AND oficina_id = $2',
+      [id, req.user.oficina_id]
+    );
+
     if (usuarioActual.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
     if (Number(id) === req.user.id && usuarioActual.rows[0].rol === 'admin' && rol !== 'admin') {
-      const totalAdmins = await contarAdmins();
+      const totalAdmins = await contarAdmins(req.user.oficina_id);
       if (totalAdmins <= 1) {
-        return res.status(400).json({ success: false, message: 'No puedes quitar el último administrador del sistema' });
+        return res.status(400).json({ success: false, message: 'No puedes quitar el último administrador de la oficina' });
       }
     }
 
     const result = await db.query(
-      'UPDATE usuarios SET rol = $1 WHERE id = $2 RETURNING id, nombre, username, rol',
-      [rol, id]
+      `UPDATE usuarios
+       SET rol = $1
+       WHERE id = $2 AND oficina_id = $3
+       RETURNING id, nombre, username, rol, oficina_id`,
+      [rol, id, req.user.oficina_id]
     );
 
     await registrarHistorial(req, `Se actualizó el rol del usuario con id ${id} a ${rol}`);
@@ -223,19 +349,23 @@ router.delete('/usuarios/:id', verificarToken, verificarAdmin, async (req, res) 
   }
 
   try {
-    const usuarioActual = await db.query('SELECT id, rol FROM usuarios WHERE id = $1', [id]);
+    const usuarioActual = await db.query(
+      'SELECT id, rol, oficina_id FROM usuarios WHERE id = $1 AND oficina_id = $2',
+      [id, req.user.oficina_id]
+    );
+
     if (usuarioActual.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
     }
 
     if (usuarioActual.rows[0].rol === 'admin') {
-      const totalAdmins = await contarAdmins();
+      const totalAdmins = await contarAdmins(req.user.oficina_id);
       if (totalAdmins <= 1) {
-        return res.status(400).json({ success: false, message: 'No puedes eliminar el último administrador del sistema' });
+        return res.status(400).json({ success: false, message: 'No puedes eliminar el último administrador de la oficina' });
       }
     }
 
-    await db.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    await db.query('DELETE FROM usuarios WHERE id = $1 AND oficina_id = $2', [id, req.user.oficina_id]);
     await registrarHistorial(req, `Se eliminó el usuario con id ${id}`);
     res.json({ success: true, message: 'Usuario eliminado' });
   } catch (error) {

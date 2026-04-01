@@ -182,6 +182,9 @@ function App() {
                 <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 700, color: 'text.primary' }}>
                   {user?.username} · {user?.rol}
                 </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {user?.oficina || 'Oficina sin asignar'}
+                </Typography>
               </Paper>
               {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
               <Button variant="outlined" onClick={handleLogout} sx={{ width: { xs: '100%', sm: 'auto' } }}>
