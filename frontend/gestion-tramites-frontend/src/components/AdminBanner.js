@@ -32,6 +32,9 @@ const AdminBanner = ({ onSelectOption }) => {
         <MenuItem onClick={() => handleMenuClose('usuarios')}>
           Administrar Usuarios
         </MenuItem>
+        <MenuItem onClick={() => handleMenuClose('oficinas')}>
+          Oficinas
+        </MenuItem>
       </Menu>
     </Box>
   );

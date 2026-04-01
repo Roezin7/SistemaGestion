@@ -1,7 +1,8 @@
 // backend/middleware.js
 const jwt = require('jsonwebtoken');
-const db = require('./db');
-const SECRET_KEY = process.env.SECRET_KEY || "clave_secreta";
+const { obtenerPerfilUsuario } = require('./utils/oficinas');
+
+const SECRET_KEY = process.env.SECRET_KEY || 'clave_secreta';
 const ROLES_VALIDOS = ['admin', 'gerente', 'empleado'];
 
 function extraerToken(req) {
@@ -19,29 +20,19 @@ function extraerToken(req) {
 
 const verificarToken = async (req, res, next) => {
   const token = extraerToken(req);
-  if (!token) return res.status(401).json({ success: false, message: 'Acceso denegado' });
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Acceso denegado' });
+  }
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    const result = await db.query(
-      `SELECT
-         u.id,
-         u.nombre,
-         u.username,
-         u.rol,
-         u.oficina_id,
-         o.nombre AS oficina_nombre
-       FROM usuarios u
-       LEFT JOIN oficinas o ON o.id = u.oficina_id
-       WHERE u.id = $1`,
-      [decoded.id]
-    );
+    const user = await obtenerPerfilUsuario(decoded.id, decoded.oficina_id);
 
-    if (!result.rows.length) {
-      return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Usuario no encontrado o sin acceso a oficinas' });
     }
 
-    req.user = result.rows[0];
+    req.user = user;
     return next();
   } catch (error) {
     console.error('Error validando token:', error.message);
@@ -51,17 +42,20 @@ const verificarToken = async (req, res, next) => {
 
 const verificarRol = (...rolesPermitidos) => (req, res, next) => {
   const rol = req.user?.rol;
-  if (rol && rolesPermitidos.includes(rol)) return next();
+  if (rol && rolesPermitidos.includes(rol)) {
+    return next();
+  }
   return res.status(403).json({ success: false, message: 'Acceso denegado: rol insuficiente.' });
 };
 
 const verificarAdmin = verificarRol('admin');
 
-// ✅ Nuevo: permitir solo roles específicos
 function allowRoles(...rolesPermitidos) {
   return (req, res, next) => {
     const rol = req.user?.rol;
-    if (rol && rolesPermitidos.includes(rol)) return next();
+    if (rol && rolesPermitidos.includes(rol)) {
+      return next();
+    }
     return res.status(403).json({ error: 'No autorizado' });
   };
 }

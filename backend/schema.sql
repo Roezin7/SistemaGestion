@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, usuarios, clientes, oficinas CASCADE;
+DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, usuario_oficinas, usuarios, clientes, oficinas CASCADE;
 
 CREATE TABLE oficinas (
     id SERIAL PRIMARY KEY,
@@ -15,6 +15,13 @@ CREATE TABLE usuarios (
     rol VARCHAR(50) NOT NULL DEFAULT 'empleado',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT usuarios_rol_check CHECK (rol IN ('admin', 'gerente', 'empleado'))
+);
+
+CREATE TABLE usuario_oficinas (
+    usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    oficina_id INT NOT NULL REFERENCES oficinas(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, oficina_id)
 );
 
 CREATE TABLE historial_cambios (
@@ -71,6 +78,7 @@ CREATE TABLE retiros_socios (
 );
 
 CREATE INDEX idx_usuarios_oficina_id ON usuarios (oficina_id);
+CREATE INDEX idx_usuario_oficinas_oficina_id ON usuario_oficinas (oficina_id);
 CREATE INDEX idx_historial_cambios_oficina_id_fecha ON historial_cambios (oficina_id, fecha DESC);
 CREATE INDEX idx_clientes_oficina_id ON clientes (oficina_id);
 CREATE INDEX idx_documentos_cliente_oficina_id_cliente_id ON documentos_cliente (oficina_id, cliente_id);

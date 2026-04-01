@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -23,31 +24,34 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RegisterPopup from './RegisterPopup';
 import api from '../services/api';
+import { readStoredUser } from '../utils/session';
 
 const ROLES = ['admin', 'gerente', 'empleado'];
 
-function obtenerOficinaActual() {
-  try {
-    return JSON.parse(localStorage.getItem('user'))?.oficina || '';
-  } catch {
-    return '';
-  }
-}
-
-const AdminUsuariosModal = ({ open, onClose }) => {
+const AdminUsuariosModal = ({ open, onClose, onSessionUpdated }) => {
   const [usuarios, setUsuarios] = useState([]);
+  const [oficinas, setOficinas] = useState([]);
   const [editingUserId, setEditingUserId] = useState(null);
   const [newRole, setNewRole] = useState('');
+  const [editingOfficeIds, setEditingOfficeIds] = useState([]);
   const [openRegister, setOpenRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const currentUser = readStoredUser();
 
   const fetchUsuarios = useCallback(() => {
     setLoading(true);
     setError('');
 
-    api.get('/api/auth/usuarios')
-      .then((response) => setUsuarios(response.data))
+    Promise.all([
+      api.get('/api/auth/usuarios'),
+      api.get('/api/auth/oficinas'),
+    ])
+      .then(([usuariosResponse, oficinasResponse]) => {
+        setUsuarios(usuariosResponse.data || []);
+        setOficinas(oficinasResponse.data || []);
+      })
       .catch((fetchError) => {
         console.error('Error al cargar usuarios:', fetchError);
         setError(fetchError.response?.data?.message || 'No se pudieron cargar los usuarios.');
@@ -62,39 +66,48 @@ const AdminUsuariosModal = ({ open, onClose }) => {
   }, [open, fetchUsuarios]);
 
   const oficinaNombre = useMemo(
-    () => usuarios[0]?.oficina_nombre || obtenerOficinaActual() || 'Oficina actual',
-    [usuarios]
+    () => usuarios[0]?.oficina_actual_nombre || currentUser?.oficina || 'Oficina actual',
+    [usuarios, currentUser]
   );
 
   const handleEditClick = (user) => {
     setEditingUserId(user.id);
     setNewRole(user.rol);
+    setEditingOfficeIds((user.oficinas || []).map((oficina) => oficina.id));
   };
 
   const handleSave = (userId) => {
-    api.put(`/api/auth/usuarios/${userId}`, { rol: newRole })
+    api.put(`/api/auth/usuarios/${userId}`, {
+      rol: newRole,
+      oficinaIds: editingOfficeIds,
+    })
       .then(() => {
         fetchUsuarios();
+        onSessionUpdated?.();
         setEditingUserId(null);
         setNewRole('');
+        setEditingOfficeIds([]);
       })
       .catch((saveError) => {
-        console.error('Error al actualizar rol:', saveError);
-        setError(saveError.response?.data?.message || 'No se pudo actualizar el rol.');
+        console.error('Error al actualizar usuario:', saveError);
+        setError(saveError.response?.data?.message || 'No se pudo actualizar el usuario.');
       });
   };
 
   const handleDelete = (userId) => {
     api.delete(`/api/auth/usuarios/${userId}`)
-      .then(() => fetchUsuarios())
+      .then(() => {
+        fetchUsuarios();
+        onSessionUpdated?.();
+      })
       .catch((deleteError) => {
-        console.error('Error al eliminar usuario:', deleteError);
-        setError(deleteError.response?.data?.message || 'No se pudo eliminar el usuario.');
+        console.error('Error al eliminar acceso de usuario:', deleteError);
+        setError(deleteError.response?.data?.message || 'No se pudo eliminar el acceso del usuario.');
       });
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
       <DialogTitle>Administración de usuarios</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2.5}>
@@ -106,7 +119,7 @@ const AdminUsuariosModal = ({ open, onClose }) => {
           >
             <Box>
               <Typography variant="body2" color="text.secondary">
-                Esta vista administra únicamente la oficina activa.
+                Administra la oficina activa y decide qué usuarios pueden cambiar entre sedes.
               </Typography>
               <Typography variant="h6" sx={{ mt: 0.5 }}>
                 {oficinaNombre}
@@ -125,6 +138,7 @@ const AdminUsuariosModal = ({ open, onClose }) => {
                 <TableRow>
                   <TableCell>Usuario</TableCell>
                   <TableCell>Rol</TableCell>
+                  <TableCell>Oficinas con acceso</TableCell>
                   <TableCell>Alta</TableCell>
                   <TableCell align="right">Acciones</TableCell>
                 </TableRow>
@@ -132,7 +146,7 @@ const AdminUsuariosModal = ({ open, onClose }) => {
               <TableBody>
                 {!loading && usuarios.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <Typography variant="body2" color="text.secondary">
                         No hay usuarios registrados para esta oficina.
                       </Typography>
@@ -150,7 +164,7 @@ const AdminUsuariosModal = ({ open, onClose }) => {
                         {user.username}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ minWidth: 180 }}>
+                    <TableCell sx={{ minWidth: 160 }}>
                       {editingUserId === user.id ? (
                         <TextField
                           select
@@ -169,6 +183,31 @@ const AdminUsuariosModal = ({ open, onClose }) => {
                         <Typography variant="body2">{user.rol}</Typography>
                       )}
                     </TableCell>
+                    <TableCell sx={{ minWidth: 260 }}>
+                      {editingUserId === user.id ? (
+                        <Autocomplete
+                          multiple
+                          options={oficinas}
+                          size="small"
+                          value={oficinas.filter((oficina) => editingOfficeIds.includes(oficina.id))}
+                          getOptionLabel={(option) => option.nombre}
+                          isOptionEqualToValue={(option, value) => option.id === value.id}
+                          onChange={(_, selected) => {
+                            setEditingOfficeIds(selected.map((option) => option.id));
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Selecciona oficinas"
+                            />
+                          )}
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          {(user.oficinas || []).map((oficina) => oficina.nombre).join(', ') || 'Sin oficinas'}
+                        </Typography>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
                         {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Sin fecha'}
@@ -177,10 +216,23 @@ const AdminUsuariosModal = ({ open, onClose }) => {
                     <TableCell align="right">
                       {editingUserId === user.id ? (
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button variant="contained" size="small" onClick={() => handleSave(user.id)}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleSave(user.id)}
+                            disabled={!editingOfficeIds.length}
+                          >
                             Guardar
                           </Button>
-                          <Button variant="outlined" size="small" onClick={() => setEditingUserId(null)}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              setEditingUserId(null);
+                              setNewRole('');
+                              setEditingOfficeIds([]);
+                            }}
+                          >
                             Cancelar
                           </Button>
                         </Stack>
@@ -205,7 +257,10 @@ const AdminUsuariosModal = ({ open, onClose }) => {
         <RegisterPopup
           open={openRegister}
           onClose={() => setOpenRegister(false)}
-          onRegisterSuccess={fetchUsuarios}
+          onRegisterSuccess={() => {
+            fetchUsuarios();
+            onSessionUpdated?.();
+          }}
           showRoleSelector
         />
       </DialogContent>

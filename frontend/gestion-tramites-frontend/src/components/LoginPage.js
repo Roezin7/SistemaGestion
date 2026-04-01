@@ -15,6 +15,7 @@ import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import logo from '../assets/newlogo.png';
 import RegisterPopup from './RegisterPopup';
 import api from '../services/api';
+import { saveAuthSession } from '../utils/session';
 
 const ACCESS_POINTS = [
   'Expedientes, pagos y documentos en una misma operación.',
@@ -44,25 +45,7 @@ function LoginPage({ onLoginSuccess }) {
     try {
       const response = await api.post('/api/auth/login', { username, password });
       if (response.data.success) {
-        const {
-          token,
-          userId,
-          username: storedUsername,
-          rol,
-          oficinaId,
-          oficina,
-        } = response.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            userId,
-            username: storedUsername,
-            rol,
-            oficinaId,
-            oficina,
-          })
-        );
+        saveAuthSession(response.data);
         onLoginSuccess();
       }
     } catch (err) {

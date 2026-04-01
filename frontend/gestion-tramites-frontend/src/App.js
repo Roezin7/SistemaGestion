@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Button,
+  CircularProgress,
   Container,
+  FormControl,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Tabs,
@@ -23,8 +27,11 @@ import LoginPage from './components/LoginPage';
 import AdminBanner from './components/AdminBanner';
 import HistorialModal from './components/HistorialModal';
 import AdminUsuariosModal from './components/AdminUsuariosModal';
+import AdminOficinasModal from './components/AdminOficinasModal';
+import api from './services/api';
 import logo from './assets/newlogo.png';
 import leaderLogo from './assets/leaderlogo.png';
+import { clearAuthSession, readStoredUser, saveAuthSession } from './utils/session';
 
 function a11yProps(index) {
   return {
@@ -43,47 +50,100 @@ function TabPanel({ children, value, index }) {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [tabIndex, setTabIndex] = useState(0);
   const [user, setUser] = useState(null);
   const [openHistorial, setOpenHistorial] = useState(false);
   const [openAdminUsuarios, setOpenAdminUsuarios] = useState(false);
+  const [openAdminOficinas, setOpenAdminOficinas] = useState(false);
+  const [switchingOffice, setSwitchingOffice] = useState(false);
+  const [scopeKey, setScopeKey] = useState(0);
 
-  useEffect(() => {
+  const hydrateSession = useCallback(async () => {
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = readStoredUser();
+
+    if (!storedToken || !storedUser) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setSessionLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.get('/api/auth/me');
+      saveAuthSession(response.data);
+      setUser(readStoredUser());
       setIsAuthenticated(true);
+    } catch (error) {
+      console.error('No se pudo restaurar la sesión:', error);
+      clearAuthSession();
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setSessionLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    hydrateSession();
+  }, [hydrateSession]);
 
   const handleAdminOption = (option) => {
     if (option === 'historial') {
       setOpenHistorial(true);
     } else if (option === 'usuarios') {
       setOpenAdminUsuarios(true);
+    } else if (option === 'oficinas') {
+      setOpenAdminOficinas(true);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('lastActivity');
+    clearAuthSession();
     setUser(null);
     setIsAuthenticated(false);
     setTabIndex(0);
+    setScopeKey(0);
+  };
+
+  const handleOfficeSwitch = async (event) => {
+    const oficinaId = event.target.value;
+    if (!oficinaId || Number(oficinaId) === Number(user?.oficinaId)) {
+      return;
+    }
+
+    setSwitchingOffice(true);
+    try {
+      const response = await api.post('/api/auth/switch-office', { oficinaId });
+      saveAuthSession(response.data);
+      setUser(readStoredUser());
+      setScopeKey((current) => current + 1);
+      setOpenHistorial(false);
+      setOpenAdminUsuarios(false);
+      setOpenAdminOficinas(false);
+    } catch (error) {
+      console.error('Error al cambiar de oficina:', error);
+      await hydrateSession();
+    } finally {
+      setSwitchingOffice(false);
+    }
   };
 
   if (!isAuthenticated) {
+    if (sessionLoading) {
+      return (
+        <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
     return (
       <LoginPage
         onLoginSuccess={() => {
-          const storedToken = localStorage.getItem('token');
-          const storedUser = localStorage.getItem('user');
-          if (storedToken && storedUser) {
-            setUser(JSON.parse(storedUser));
-          }
-          setIsAuthenticated(Boolean(storedToken && storedUser));
+          setSessionLoading(true);
+          hydrateSession();
         }}
       />
     );
@@ -171,7 +231,7 @@ function App() {
                 sx={{
                   px: 1.75,
                   py: 1.25,
-                  minWidth: { xs: '100%', sm: 220 },
+                  minWidth: { xs: '100%', sm: 280 },
                   width: { xs: '100%', sm: 'auto' },
                   backgroundColor: 'rgba(36, 93, 156, 0.05)',
                 }}
@@ -182,9 +242,22 @@ function App() {
                 <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 700, color: 'text.primary' }}>
                   {user?.username} · {user?.rol}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {user?.oficina || 'Oficina sin asignar'}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={String(user?.oficinaId || '')}
+                      onChange={handleOfficeSwitch}
+                      disabled={switchingOffice}
+                    >
+                      {(user?.oficinas || []).map((oficina) => (
+                        <MenuItem key={oficina.id} value={String(oficina.id)}>
+                          {oficina.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  {switchingOffice ? <CircularProgress size={18} /> : null}
+                </Stack>
               </Paper>
               {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
               <Button variant="outlined" onClick={handleLogout} sx={{ width: { xs: '100%', sm: 'auto' } }}>
@@ -194,21 +267,32 @@ function App() {
           </Stack>
         </Paper>
 
-        <TabPanel value={tabIndex} index={0}>
-          <Dashboard />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={1}>
-          <ClientesPage />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={2}>
-          <FinanzasPage />
-        </TabPanel>
-        <TabPanel value={tabIndex} index={3}>
-          <ReportesPage />
-        </TabPanel>
+        <Box key={`${user?.userId || 'anon'}-${user?.oficinaId || 'sin-oficina'}-${scopeKey}`}>
+          <TabPanel value={tabIndex} index={0}>
+            <Dashboard />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={1}>
+            <ClientesPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={2}>
+            <FinanzasPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={3}>
+            <ReportesPage />
+          </TabPanel>
+        </Box>
 
         <HistorialModal open={openHistorial} onClose={() => setOpenHistorial(false)} />
-        <AdminUsuariosModal open={openAdminUsuarios} onClose={() => setOpenAdminUsuarios(false)} />
+        <AdminUsuariosModal
+          open={openAdminUsuarios}
+          onClose={() => setOpenAdminUsuarios(false)}
+          onSessionUpdated={hydrateSession}
+        />
+        <AdminOficinasModal
+          open={openAdminOficinas}
+          onClose={() => setOpenAdminOficinas(false)}
+          onSessionUpdated={hydrateSession}
+        />
 
         <Stack
           direction={{ xs: 'column', md: 'row' }}

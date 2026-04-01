@@ -9,6 +9,14 @@ jest.mock('./components/ReportesPage', () => () => <div>Reportes</div>);
 jest.mock('./components/AdminBanner', () => () => <div>Admin Banner</div>);
 jest.mock('./components/HistorialModal', () => () => null);
 jest.mock('./components/AdminUsuariosModal', () => () => null);
+jest.mock('./components/AdminOficinasModal', () => () => null);
+jest.mock('./services/api', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+  },
+}));
 
 import App from './App';
 

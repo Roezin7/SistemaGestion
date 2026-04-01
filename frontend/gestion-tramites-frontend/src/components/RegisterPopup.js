@@ -125,7 +125,7 @@ const RegisterPopup = ({ open, onClose, onRegisterSuccess, showRoleSelector = fa
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             {showRoleSelector
-              ? 'Cada usuario queda asociado a una sola oficina y solo verá los datos de esa sede. Si lo asignas a otra oficina, no aparecerá en el listado actual.'
+              ? 'Cada usuario inicia con una oficina principal. Si después necesitas que cambie entre varias, puedes darle acceso adicional desde la administración de usuarios.'
               : 'Configura el usuario administrador inicial y la oficina principal de la operación.'}
           </Typography>
 
