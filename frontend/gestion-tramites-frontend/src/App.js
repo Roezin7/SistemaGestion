@@ -160,13 +160,15 @@ function App() {
             background: 'linear-gradient(180deg, rgba(36,93,156,0.05) 0%, rgba(255,255,255,0.98) 36%)',
           }}
         >
-          <Stack
-            direction={{ xs: 'column', xl: 'row' }}
-            spacing={2.5}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', xl: 'center' }}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 320px' },
+              gap: { xs: 2.5, lg: 3 },
+              alignItems: 'start',
+            }}
           >
-            <Stack spacing={2} sx={{ flex: 1, width: '100%' }}>
+            <Stack spacing={2} sx={{ minWidth: 0, width: '100%' }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Box
                   sx={{
@@ -221,18 +223,19 @@ function App() {
             </Stack>
 
             <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems={{ xs: 'stretch', sm: 'center' }}
-              sx={{ width: { xs: '100%', xl: 'auto' } }}
+              spacing={1.25}
+              alignItems={{ xs: 'stretch', lg: 'flex-end' }}
+              sx={{
+                width: { xs: '100%', lg: 320 },
+                justifySelf: { lg: 'end' },
+              }}
             >
               <Paper
                 elevation={0}
                 sx={{
                   px: 1.75,
                   py: 1.25,
-                  minWidth: { xs: '100%', sm: 280 },
-                  width: { xs: '100%', sm: 'auto' },
+                  width: '100%',
                   backgroundColor: 'rgba(36, 93, 156, 0.05)',
                 }}
               >
@@ -259,12 +262,21 @@ function App() {
                   {switchingOffice ? <CircularProgress size={18} /> : null}
                 </Stack>
               </Paper>
-              {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
-              <Button variant="outlined" onClick={handleLogout} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-                Cerrar sesión
-              </Button>
+
+              <Stack
+                direction={{ xs: 'column', sm: 'row', lg: 'row' }}
+              spacing={1}
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                justifyContent={{ lg: 'flex-end' }}
+                sx={{ width: '100%' }}
+              >
+                {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
+                <Button variant="outlined" onClick={handleLogout} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+                  Cerrar sesión
+                </Button>
+              </Stack>
             </Stack>
-          </Stack>
+          </Box>
         </Paper>
 
         <Box key={`${user?.userId || 'anon'}-${user?.oficinaId || 'sin-oficina'}-${scopeKey}`}>

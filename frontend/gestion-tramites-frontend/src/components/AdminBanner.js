@@ -17,8 +17,8 @@ const AdminBanner = ({ onSelectOption }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-      <Button variant="text" onClick={handleMenuOpen}>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Button variant="text" onClick={handleMenuOpen} sx={{ width: { xs: '100%', sm: 'auto' } }}>
         Administrar
       </Button>
       <Menu
