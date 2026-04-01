@@ -1,23 +1,30 @@
-// 4) Modificar src/components/FinanzasPage.js para incluir el nuevo panel
-import React from 'react';
-import { Box, Typography } from '@mui/material';
-import FinanzasForm         from './FinanzasForm';
+import React, { useState } from 'react';
+import { Box } from '@mui/material';
+import FinanzasForm from './FinanzasForm';
+import PageHeader from './ui/PageHeader';
+import RepartoSocios from './RepartoSocios';
 import UltimasTransacciones from './UltimasTransacciones';
-import RepartoSocios        from './RepartoSocios';    // <-- Importa aquí
 
-export default function FinanzasPage() {
+function FinanzasPage() {
+  const [refreshSignal, setRefreshSignal] = useState(0);
+
   return (
-    <Box p={2}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-        Finanzas
-      </Typography>
+    <Box>
+      <PageHeader
+        eyebrow="Control financiero"
+        title="Finanzas"
+        subtitle="Captura movimientos, consulta el histórico del periodo y mantén al día el reparto de utilidades entre socios."
+      />
 
-      <FinanzasForm />
-
-      <UltimasTransacciones />
-
-      {/* NUEVO: Panel de reparto entre socios */}
-      <RepartoSocios />
+      <FinanzasForm onTransaccionCreated={() => setRefreshSignal((current) => current + 1)} />
+      <Box sx={{ mt: 2.5 }}>
+        <UltimasTransacciones refreshSignal={refreshSignal} />
+      </Box>
+      <Box sx={{ mt: 2.5 }}>
+        <RepartoSocios />
+      </Box>
     </Box>
   );
 }
+
+export default FinanzasPage;

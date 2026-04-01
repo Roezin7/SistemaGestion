@@ -1,205 +1,261 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Box,
-  Typography,
+  CircularProgress,
+  Grid,
+  IconButton,
+  Stack,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  TableCell,
-  TableBody,
-  Paper,
-  TableContainer,
   TextField,
-  Button,
-  Grid,
-  IconButton
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { getDefaultDateRange } from '../utils/dateUtils';  
-import { currencyFormatter } from '../utils/formatUtils';  
-import EditarTransaccionModal from './EditarTransaccionModal';  
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined';
 import api from '../services/api';
+import { getDefaultDateRange } from '../utils/dateUtils';
+import { currencyFormatter } from '../utils/formatUtils';
+import EditarTransaccionModal from './EditarTransaccionModal';
+import FeedbackSnackbar from './ui/FeedbackSnackbar';
+import MetricCard from './ui/MetricCard';
+import SectionCard from './ui/SectionCard';
 
-const UltimasTransacciones = () => {
+function UltimasTransacciones({ refreshSignal }) {
   const defaultRange = getDefaultDateRange();
-  const [dateRange, setDateRange] = useState({
-    fechaInicio: defaultRange.fechaInicio,
-    fechaFin: defaultRange.fechaFin,
-  });
-
+  const [dateRange, setDateRange] = useState(defaultRange);
   const [transacciones, setTransacciones] = useState([]);
   const [selectedTransaccion, setSelectedTransaccion] = useState(null);
   const [openEditarModal, setOpenEditarModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState({ open: false, severity: 'success', message: '' });
 
-  // Cargar transacciones desde el backend
-  const cargarTransacciones = useCallback(() => {
-    api.get('/api/finanzas/ultimas', {
-      params: dateRange,
-    })
-    .then(response => setTransacciones(response.data))
-    .catch(error => console.error('Error al cargar transacciones:', error));
+  const cargarTransacciones = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/finanzas/ultimas', {
+        params: dateRange,
+      });
+      setTransacciones(response.data);
+    } catch (error) {
+      console.error('Error al cargar transacciones:', error);
+      setFeedback({
+        open: true,
+        severity: 'error',
+        message: 'No se pudieron cargar las transacciones.',
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [dateRange]);
 
   useEffect(() => {
     cargarTransacciones();
-  }, [cargarTransacciones]);
+  }, [cargarTransacciones, refreshSignal]);
 
-  const handleDateChange = (e) => {
-    setDateRange({ ...dateRange, [e.target.name]: e.target.value });
-  };
+  const totalIngresos = useMemo(() => (
+    transacciones
+      .filter((transaction) => transaction.tipo === 'ingreso' || transaction.tipo === 'abono')
+      .reduce((sum, transaction) => sum + parseFloat(transaction.monto), 0)
+  ), [transacciones]);
 
-  // Eliminar transacción
-  const handleDeleteTransaccion = (id) => {
-    if (window.confirm('¿Desea eliminar esta transacción?')) {
-      api.delete(`/api/finanzas/${id}`)
-      .then(() => {
-        cargarTransacciones(); // Recargar lista tras eliminar
-      })
-      .catch(error => console.error('Error al eliminar transacción:', error));
-    }
-  };
-
-  // Abrir el modal de edición para una transacción
-  const handleEditTransaccion = (tran) => {
-    console.log("Transacción seleccionada para editar:", tran);
-    setSelectedTransaccion(tran);
-    setOpenEditarModal(true);
-  };
-
-  // Cerrar el modal de edición y refrescar la lista
-  const handleCloseEditarModal = () => {
-    setOpenEditarModal(false);
-    setSelectedTransaccion(null);
-    cargarTransacciones();
-  };
-
-  // Calcular el balance general
-  const totalIngresos = transacciones
-    .filter(t => t.tipo === 'ingreso' || t.tipo === 'abono')
-    .reduce((sum, t) => sum + parseFloat(t.monto), 0);
-
-  const totalEgresos = transacciones
-    .filter(t => t.tipo === 'egreso' || t.tipo === 'retiro')
-    .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+  const totalEgresos = useMemo(() => (
+    transacciones
+      .filter((transaction) => transaction.tipo === 'egreso' || transaction.tipo === 'retiro')
+      .reduce((sum, transaction) => sum + parseFloat(transaction.monto), 0)
+  ), [transacciones]);
 
   const balanceGeneral = totalIngresos - totalEgresos;
 
-  return (
-    <Box mt={2}>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-        Últimas Transacciones
-      </Typography>
+  const handleDeleteTransaccion = async (id) => {
+    if (!window.confirm('¿Desea eliminar esta transacción?')) {
+      return;
+    }
 
-      {/* Filtros de fecha */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Fecha Inicio"
-            type="date"
-            name="fechaInicio"
-            value={dateRange.fechaInicio}
-            onChange={handleDateChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
+    try {
+      await api.delete(`/api/finanzas/${id}`);
+      await cargarTransacciones();
+      setFeedback({
+        open: true,
+        severity: 'success',
+        message: 'Transacción eliminada correctamente.',
+      });
+    } catch (error) {
+      console.error('Error al eliminar transacción:', error);
+      setFeedback({
+        open: true,
+        severity: 'error',
+        message: 'No se pudo eliminar la transacción.',
+      });
+    }
+  };
+
+  return (
+    <>
+      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+        <Grid item xs={12} md={4}>
+          <MetricCard
+            label="Ingresos del rango"
+            value={currencyFormatter.format(totalIngresos)}
+            icon={<PaymentsOutlinedIcon />}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Fecha Fin"
-            type="date"
-            name="fechaFin"
-            value={dateRange.fechaFin}
-            onChange={handleDateChange}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
+        <Grid item xs={12} md={4}>
+          <MetricCard
+            label="Egresos del rango"
+            value={currencyFormatter.format(totalEgresos)}
+            icon={<ReceiptLongOutlinedIcon />}
+            tone="accent"
           />
         </Grid>
-        <Grid item xs={12} sm={4} sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button
-            variant="contained"
-            onClick={cargarTransacciones}
-            fullWidth
-            sx={{ height: '56px' }}
-          >
-            Buscar
-          </Button>
+        <Grid item xs={12} md={4}>
+          <MetricCard
+            label="Balance del rango"
+            value={currencyFormatter.format(balanceGeneral)}
+            icon={<BalanceOutlinedIcon />}
+            tone="success"
+          />
         </Grid>
       </Grid>
 
-      {/* Tabla */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#06588a' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tipo</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Concepto</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Forma de Pago</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {transacciones.map((tran) => (
-              <TableRow key={tran.id}>
-                <TableCell>{tran.id}</TableCell>
-                <TableCell><strong>{tran.tipo}</strong></TableCell>
-                <TableCell>{tran.concepto}</TableCell>
-                <TableCell>{tran.fecha.slice(0, 10)}</TableCell>
-                <TableCell>
-                  {currencyFormatter.format(parseFloat(tran.monto))}
-                </TableCell>
-                <TableCell>{tran.forma_pago ? tran.forma_pago : 'No especificado'}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleEditTransaccion(tran)}>
-                    <EditIcon color="primary" />
-                  </IconButton>
-                  <IconButton onClick={() => handleDeleteTransaccion(tran.id)}>
-                    <DeleteIcon color="error" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-            {transacciones.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No hay transacciones en este rango de fechas
-                </TableCell>
-              </TableRow>
-            )}
-            {/* Balance General al Final */}
-            <TableRow sx={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-              <TableCell colSpan={4} align="right">Total Ingresos:</TableCell>
-              <TableCell>{currencyFormatter.format(totalIngresos)}</TableCell>
-              <TableCell colSpan={2}></TableCell>
-            </TableRow>
-            <TableRow sx={{ backgroundColor: '#f1f1f1', fontWeight: 'bold' }}>
-              <TableCell colSpan={4} align="right">Total Egresos:</TableCell>
-              <TableCell>{currencyFormatter.format(totalEgresos)}</TableCell>
-              <TableCell colSpan={2}></TableCell>
-            </TableRow>
-            <TableRow sx={{ backgroundColor: '#d1e7dd', fontWeight: 'bold' }}>
-              <TableCell colSpan={4} align="right">Balance General:</TableCell>
-              <TableCell>{currencyFormatter.format(balanceGeneral)}</TableCell>
-              <TableCell colSpan={2}></TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <SectionCard
+        title="Movimientos registrados"
+        subtitle="Consulta, edita o elimina transacciones dentro del rango seleccionado."
+      >
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} md={4}>
+            <TextField
+              label="Fecha inicial"
+              type="date"
+              name="fechaInicio"
+              value={dateRange.fechaInicio}
+              onChange={(event) => setDateRange((current) => ({ ...current, [event.target.name]: event.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              label="Fecha final"
+              type="date"
+              name="fechaFin"
+              value={dateRange.fechaFin}
+              onChange={(event) => setDateRange((current) => ({ ...current, [event.target.name]: event.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Stack justifyContent="center" sx={{ height: '100%' }}>
+              <Typography variant="body2" color="text.secondary">
+                Total de registros: {transacciones.length}
+              </Typography>
+            </Stack>
+          </Grid>
+        </Grid>
 
-      {/* MODAL PARA EDITAR TRANSACCIÓN */}
-      {selectedTransaccion && (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Concepto</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell align="right">Monto</TableCell>
+                <TableCell>Forma de pago</TableCell>
+                <TableCell align="right">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <Stack spacing={2} alignItems="center">
+                      <CircularProgress />
+                      <Typography variant="body2" color="text.secondary">
+                        Cargando transacciones...
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ) : transacciones.length > 0 ? (
+                transacciones.map((tran) => (
+                  <TableRow key={tran.id} hover>
+                    <TableCell>{tran.id}</TableCell>
+                    <TableCell sx={{ textTransform: 'capitalize', fontWeight: 800 }}>{tran.tipo}</TableCell>
+                    <TableCell>{tran.concepto}</TableCell>
+                    <TableCell>{tran.fecha.slice(0, 10)}</TableCell>
+                    <TableCell align="right">
+                      {currencyFormatter.format(parseFloat(tran.monto))}
+                    </TableCell>
+                    <TableCell sx={{ textTransform: 'capitalize' }}>
+                      {tran.forma_pago || 'No especificado'}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Editar transacción">
+                        <IconButton onClick={() => {
+                          setSelectedTransaccion(tran);
+                          setOpenEditarModal(true);
+                        }}
+                        >
+                          <EditIcon color="primary" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar transacción">
+                        <IconButton onClick={() => handleDeleteTransaccion(tran.id)}>
+                          <DeleteIcon color="error" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <Typography variant="body1">No hay transacciones en este rango.</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Ajusta las fechas o registra un nuevo movimiento arriba.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </SectionCard>
+
+      {selectedTransaccion ? (
         <EditarTransaccionModal
           open={openEditarModal}
-          onClose={handleCloseEditarModal}
+          onClose={() => {
+            setOpenEditarModal(false);
+            setSelectedTransaccion(null);
+            cargarTransacciones();
+          }}
           transaccion={selectedTransaccion}
-          onTransaccionUpdated={handleCloseEditarModal}
+          onTransaccionUpdated={() => {
+            setOpenEditarModal(false);
+            setSelectedTransaccion(null);
+            cargarTransacciones();
+          }}
         />
-      )}
-    </Box>
+      ) : null}
+
+      <FeedbackSnackbar
+        open={feedback.open}
+        severity={feedback.severity}
+        message={feedback.message}
+        onClose={() => setFeedback((current) => ({ ...current, open: false }))}
+      />
+    </>
   );
-};
+}
 
 export default UltimasTransacciones;

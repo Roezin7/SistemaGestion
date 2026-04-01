@@ -1,9 +1,22 @@
-// src/components/Dashboard.js
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Grid, Paper, TextField, Button } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Grid,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
+import FolderSharedOutlinedIcon from '@mui/icons-material/FolderSharedOutlined';
+import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import { Bar, Line } from 'react-chartjs-2';
-import api from '../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,8 +27,14 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 } from 'chart.js';
+import api from '../services/api';
+import { getDefaultDateRange } from '../utils/dateUtils';
+import { currencyFormatter } from '../utils/formatUtils';
+import MetricCard from './ui/MetricCard';
+import PageHeader from './ui/PageHeader';
+import SectionCard from './ui/SectionCard';
 
 ChartJS.register(
   CategoryScale,
@@ -29,235 +48,284 @@ ChartJS.register(
   Filler
 );
 
-function getDefaultDateRange() {
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return {
-    fechaInicio: firstDay.toISOString().slice(0, 10),
-    fechaFin:    lastDay.toISOString().slice(0, 10),
-  };
-}
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style:            'currency',
-  currency:         'USD',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-});
-
 const chartOptions = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: 'top',
       labels: {
-        font: { size: 16, family: 'Arial' },
-        color: '#333'
-      }
-    },
-    title: {
-      display: true,
-      text: 'Ingresos y Egresos Totales',
-      font: { size: 24, weight: 'bold' },
-      color: '#222'
+        usePointStyle: true,
+        color: '#42515c',
+      },
     },
     tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      titleFont: { size: 16, weight: 'bold' },
-      bodyFont: { size: 14 }
-    }
+      backgroundColor: 'rgba(13, 34, 41, 0.92)',
+      padding: 12,
+    },
   },
-  animation: { duration: 1500, easing: 'easeInOutQuart' },
   scales: {
     y: {
       beginAtZero: true,
-      grid: { color: 'rgba(0,0,0,0.1)' },
-      title: { display: true, text: 'Monto en USD', color: '#333' }
+      grid: { color: 'rgba(13, 59, 69, 0.08)' },
+      ticks: { color: '#5c6a74' },
     },
     x: {
-      grid: { color: 'rgba(0,0,0,0.1)' },
-      title: { display: true, text: 'Fecha', color: '#333' }
-    }
-  }
+      grid: { display: false },
+      ticks: { color: '#5c6a74', maxRotation: 0 },
+    },
+  },
 };
 
-const Dashboard = () => {
-  const defaultRange = getDefaultDateRange();
-  const [dateRange, setDateRange] = useState(defaultRange);
-
+function Dashboard() {
+  const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [kpis, setKpis] = useState({
-    ingreso_total:       0,
-    abonos_totales:      0,
-    egreso_total:        0,
-    balance_general:     0,
-    tramites_mensuales:  0,
-    saldo_restante:      0,
-    totalEfectivo:       0,
-    totalTransferencia:  0
+    ingreso_total: 0,
+    abonos_totales: 0,
+    egreso_total: 0,
+    balance_general: 0,
+    tramites_mensuales: 0,
+    saldo_restante: 0,
+    totalEfectivo: 0,
+    totalTransferencia: 0,
   });
-
   const [chartDataIngresos, setChartDataIngresos] = useState({ labels: [], datasets: [] });
-  const [chartDataTramites, setChartDataTramites]   = useState({ labels: [], datasets: [] });
-
+  const [chartDataTramites, setChartDataTramites] = useState({ labels: [], datasets: [] });
   const [clientes, setClientes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // 1) Fetch KPIs from API
-  const fetchKpis = useCallback(() => {
-    api.get('/api/kpis', { params: dateRange })
-      .then(response => {
-        setKpis(response.data);
-      })
-      .catch(error => console.error('Error al cargar KPI:', error));
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const [kpisResponse, chartResponse, clientesResponse] = await Promise.all([
+        api.get('/api/kpis', { params: dateRange }),
+        api.get('/api/kpis/chart', { params: dateRange }),
+        api.get('/api/clientes'),
+      ]);
+
+      setKpis(kpisResponse.data);
+      setClientes(clientesResponse.data);
+
+      setChartDataIngresos({
+        labels: chartResponse.data.labels,
+        datasets: [
+          {
+            label: 'Ingresos',
+            data: chartResponse.data.ingresos,
+            backgroundColor: 'rgba(13, 94, 111, 0.72)',
+            borderRadius: 10,
+          },
+          {
+            label: 'Egresos',
+            data: chartResponse.data.egresos,
+            backgroundColor: 'rgba(197, 140, 69, 0.76)',
+            borderRadius: 10,
+          },
+        ],
+      });
+
+      setChartDataTramites({
+        labels: chartResponse.data.labels,
+        datasets: [
+          {
+            label: 'Trámites diarios',
+            data: chartResponse.data.tramites,
+            borderColor: '#0d5e6f',
+            backgroundColor: 'rgba(13, 94, 111, 0.14)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+        ],
+      });
+    } catch (requestError) {
+      setError('No fue posible cargar el resumen operativo.');
+      console.error('Error al cargar dashboard:', requestError);
+    } finally {
+      setLoading(false);
+    }
   }, [dateRange]);
-
-  // 2) Fetch chart data from API
-  const fetchChartData = useCallback(() => {
-    api.get('/api/kpis/chart', { params: dateRange })
-      .then(response => {
-        // set data for ingresos/egresos bar chart
-        setChartDataIngresos({
-          labels: response.data.labels.map(l => l.split('T')[0]),
-          datasets: [
-            {
-              label: 'Ingresos Totales',
-              data: response.data.ingresos,
-              backgroundColor: 'rgba(54, 162, 235, 0.7)',
-              borderColor:     'rgba(54, 162, 235, 1)',
-              borderWidth: 2,
-              borderRadius: 8
-            },
-            {
-              label: 'Egresos Totales',
-              data: response.data.egresos,
-              backgroundColor: 'rgba(255, 99, 132, 0.7)',
-              borderColor:     'rgba(255, 99, 132, 1)',
-              borderWidth: 2,
-              borderRadius: 8
-            }
-          ]
-        });
-        // set data for trámites line chart
-        setChartDataTramites({
-          labels: response.data.labels.map(l => l.split('T')[0]),
-          datasets: [
-            {
-              label: 'Trámites Diarios',
-              data: response.data.tramites,
-              borderColor: 'rgba(255, 206, 86, 1)',
-              backgroundColor: 'rgba(255, 206, 86, 0.6)',
-              fill: true,
-              tension: 0.4,
-              pointRadius: 5,
-              pointBackgroundColor: 'rgba(255, 206, 86, 1)',
-              pointHoverRadius: 7
-            }
-          ]
-        });
-      })
-      .catch(error => console.error('Error al cargar datos del gráfico:', error));
-  }, [dateRange]);
-
-  // 3) Fetch all clientes to compute total saldo restante
-  const fetchClientes = useCallback(() => {
-    api.get('/api/clientes')
-      .then(res => setClientes(res.data))
-      .catch(err => console.error('Error al cargar clientes:', err));
-  }, []);
 
   useEffect(() => {
-    fetchKpis();
-    fetchChartData();
-    fetchClientes();
-  }, [fetchKpis, fetchChartData, fetchClientes]);
+    loadDashboard();
+  }, [loadDashboard]);
 
-  const handleDateChange = e => {
-    setDateRange({ ...dateRange, [e.target.name]: e.target.value });
-  };
-
-  // Compute sum of 'restante' across all clientes
-  const totalSaldoRestante = clientes
-    .reduce((sum, c) => sum + Number(c.restante || 0), 0);
+  const totalSaldoRestante = clientes.reduce((sum, cliente) => sum + Number(cliente.restante || 0), 0);
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-        Dashboard
-      </Typography>
+    <Box>
+      <PageHeader
+        eyebrow="Vista ejecutiva"
+        title="Dashboard"
+        subtitle="Consulta el estado general del despacho, la salud financiera del periodo y el avance operativo del equipo."
+        actions={
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25}>
+            <TextField
+              label="Fecha inicial"
+              type="date"
+              name="fechaInicio"
+              value={dateRange.fechaInicio}
+              onChange={(event) => setDateRange((current) => ({ ...current, [event.target.name]: event.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarMonthRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              label="Fecha final"
+              type="date"
+              name="fechaFin"
+              value={dateRange.fechaFin}
+              onChange={(event) => setDateRange((current) => ({ ...current, [event.target.name]: event.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarMonthRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button variant="contained" onClick={loadDashboard} disabled={loading}>
+              {loading ? 'Actualizando...' : 'Actualizar panel'}
+            </Button>
+          </Stack>
+        }
+      />
 
-      {/* Date filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <TextField
-          label="Fecha Inicio"
-          type="date"
-          name="fechaInicio"
-          value={dateRange.fechaInicio}
-          onChange={handleDateChange}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          label="Fecha Fin"
-          type="date"
-          name="fechaFin"
-          value={dateRange.fechaFin}
-          onChange={handleDateChange}
-          InputLabelProps={{ shrink: true }}
-        />
-        <Button
-          variant="contained"
-          onClick={() => {
-            fetchKpis();
-            fetchChartData();
-            fetchClientes();
-          }}
-        >
-          Actualizar
-        </Button>
-      </Box>
+      {error ? <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert> : null}
 
-      {/* KPI cards */}
-      <Grid container spacing={2}>
-        {[
-          { title: 'Ingreso Total',            value: kpis.ingreso_total      },
-          { title: 'Abonos Totales',           value: kpis.abonos_totales     },
-          { title: 'Egreso Total',             value: kpis.egreso_total       },
-          { title: 'Balance',                  value: kpis.balance_general    },
-          { title: 'Trámites Mensuales',       value: kpis.tramites_mensuales, format: false },
-          { title: 'Saldo Restante',           value: totalSaldoRestante     },
-          { title: 'Efectivo recibido',        value: kpis.totalEfectivo      },
-          { title: 'Transferencias recibidas', value: kpis.totalTransferencia }
-        ].map((kpi, idx) => (
-          <Grid item xs={12} sm={6} md={4} key={idx}>
-            <Paper elevation={4} sx={{ p: 3, textAlign: 'center', backgroundColor: '#f7f7f7' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {kpi.title}
-              </Typography>
-              <Typography variant="h5" sx={{ color: '#333' }}>
-                {kpi.format === false
-                  ? kpi.value
-                  : currencyFormatter.format(kpi.value || 0)
-                }
-              </Typography>
-            </Paper>
+      <Grid container spacing={2.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MetricCard
+            label="Ingreso total"
+            value={currencyFormatter.format(kpis.ingreso_total || 0)}
+            helper="Incluye ingresos, abonos y documentos del periodo."
+            icon={<AccountBalanceWalletOutlinedIcon />}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MetricCard
+            label="Balance general"
+            value={currencyFormatter.format(kpis.balance_general || 0)}
+            helper="Resultado neto del periodo consultado."
+            icon={<SavingsOutlinedIcon />}
+            tone="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MetricCard
+            label="Saldo restante"
+            value={currencyFormatter.format(totalSaldoRestante)}
+            helper="Monto pendiente consolidado de la cartera activa."
+            icon={<PriceCheckOutlinedIcon />}
+            tone="accent"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MetricCard
+            label="Trámites del periodo"
+            value={String(kpis.tramites_mensuales || 0)}
+            helper="Expedientes creados dentro del rango actual."
+            icon={<FolderSharedOutlinedIcon />}
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
+        <Grid item xs={12} md={6} lg={3}>
+          <MetricCard
+            label="Abonos totales"
+            value={currencyFormatter.format(kpis.abonos_totales || 0)}
+            icon={<PaymentsOutlinedIcon />}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <MetricCard
+            label="Egresos"
+            value={currencyFormatter.format(kpis.egreso_total || 0)}
+            icon={<PaymentsOutlinedIcon />}
+            tone="accent"
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <MetricCard
+            label="Efectivo recibido"
+            value={currencyFormatter.format(kpis.totalEfectivo || 0)}
+            icon={<AccountBalanceWalletOutlinedIcon />}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <MetricCard
+            label="Transferencias"
+            value={currencyFormatter.format(kpis.totalTransferencia || 0)}
+            icon={<AccountBalanceWalletOutlinedIcon />}
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2.5} sx={{ mt: 1 }}>
+        <Grid item xs={12} lg={7}>
+          <SectionCard
+            title="Flujo financiero"
+            subtitle="Comparativo de ingresos y egresos a lo largo del rango consultado."
+          >
+            <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {loading ? <CircularProgress /> : <Bar data={chartDataIngresos} options={chartOptions} />}
+            </Box>
+          </SectionCard>
+        </Grid>
+        <Grid item xs={12} lg={5}>
+          <SectionCard
+            title="Ritmo operativo"
+            subtitle="Volumen diario de trámites iniciados en el sistema."
+          >
+            <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {loading ? <CircularProgress /> : <Line data={chartDataTramites} options={chartOptions} />}
+            </Box>
+          </SectionCard>
+        </Grid>
+      </Grid>
+
+      <SectionCard
+        title="Lectura rápida del periodo"
+        subtitle="Resumen para revisar la operación sin entrar todavía a detalle por módulo."
+        sx={{ mt: 2.5 }}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6">Finanzas</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              El sistema reporta un balance de {currencyFormatter.format(kpis.balance_general || 0)} con una cartera
+              pendiente acumulada de {currencyFormatter.format(totalSaldoRestante)}.
+            </Typography>
           </Grid>
-        ))}
-      </Grid>
-
-      {/* Charts */}
-      <Grid container spacing={2} sx={{ mt: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={4} sx={{ p: 2 }}>
-            <Bar data={chartDataIngresos} options={chartOptions} />
-          </Paper>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6">Cobranza</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Se registraron {currencyFormatter.format(kpis.abonos_totales || 0)} en abonos y {currencyFormatter.format(kpis.totalEfectivo || 0)}
+              {' '}en efectivo dentro del periodo consultado.
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6">Operación</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Hay {clientes.length} clientes cargados en el sistema y {kpis.tramites_mensuales || 0} trámites nuevos
+              dentro del rango actual.
+            </Typography>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={4} sx={{ p: 2 }}>
-            <Line data={chartDataTramites} options={chartOptions} />
-          </Paper>
-        </Grid>
-      </Grid>
+      </SectionCard>
     </Box>
   );
-};
+}
 
 export default Dashboard;

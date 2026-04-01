@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Paper, Grid, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Card, CardContent } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Grid,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
+import ManageSearchOutlinedIcon from '@mui/icons-material/ManageSearchOutlined';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import api from '../services/api';
 import { getDefaultDateRange } from '../utils/dateUtils';
 import { currencyFormatter } from '../utils/formatUtils';
-import api from '../services/api';
+import MetricCard from './ui/MetricCard';
+import PageHeader from './ui/PageHeader';
+import SectionCard from './ui/SectionCard';
 
-const Reportes = () => {
+function Reportes() {
   const defaultRange = getDefaultDateRange();
   const [fechaInicio, setFechaInicio] = useState(defaultRange.fechaInicio);
   const [fechaFin, setFechaFin] = useState(defaultRange.fechaFin);
-
   const [datos, setDatos] = useState([]);
   const [kpis, setKpis] = useState({
     ingreso_total: 0,
@@ -20,40 +37,43 @@ const Reportes = () => {
     tramites_mensuales: 0,
     saldo_restante: 0,
   });
+  const [error, setError] = useState('');
 
-  const handleBuscar = () => {
-    api.get('/api/finanzas/reportes', { params: { fechaInicio, fechaFin } })
-      .then(response => setDatos(response.data))
-      .catch(error => console.error('Error al cargar reportes:', error));
-
-    api.get('/api/kpis', { params: { fechaInicio, fechaFin } })
-      .then(response => setKpis(response.data))
-      .catch(error => console.error('Error al cargar KPI:', error));
+  const handleBuscar = async () => {
+    setError('');
+    try {
+      const [reportesResponse, kpisResponse] = await Promise.all([
+        api.get('/api/finanzas/reportes', { params: { fechaInicio, fechaFin } }),
+        api.get('/api/kpis', { params: { fechaInicio, fechaFin } }),
+      ]);
+      setDatos(reportesResponse.data);
+      setKpis(kpisResponse.data);
+    } catch (requestError) {
+      console.error('Error al cargar reportes:', requestError);
+      setError('No fue posible generar el reporte para el periodo seleccionado.');
+    }
   };
 
   const exportarExcel = () => {
     const header = [
-      ['Reporte Profesional'],
-      [`Rango de Fechas: ${fechaInicio} - ${fechaFin}`],
+      ['Reporte Ejecutivo'],
+      [`Rango de fechas: ${fechaInicio} - ${fechaFin}`],
       [],
-      ['Ingreso Total', 'Abonos Totales', 'Egreso Total', 'Balance General', 'Trámites Mensuales', 'Saldo Restante'],
+      ['Ingreso Total', 'Abonos Totales', 'Egreso Total', 'Balance General', 'Trámites del Periodo', 'Saldo Restante'],
       [
         kpis.ingreso_total,
         kpis.abonos_totales,
         kpis.egreso_total,
         kpis.balance_general,
         kpis.tramites_mensuales,
-        kpis.saldo_restante
+        kpis.saldo_restante,
       ],
       [],
-      ['ID', 'Tipo', 'Concepto', 'Fecha', 'Monto']
+      ['ID', 'Tipo', 'Concepto', 'Fecha', 'Monto'],
     ];
 
-    const rows = datos.map(item => ([item.id, item.tipo, item.concepto, item.fecha, item.monto]));
-
-    const hoja = [...header, ...rows];
-    const worksheet = XLSX.utils.aoa_to_sheet(hoja);
-
+    const rows = datos.map((item) => [item.id, item.tipo, item.concepto, item.fecha, item.monto]);
+    const worksheet = XLSX.utils.aoa_to_sheet([...header, ...rows]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -62,112 +82,102 @@ const Reportes = () => {
   };
 
   return (
-    <Box p={2}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-        Reportes
-      </Typography>
+    <>
+      <PageHeader
+        eyebrow="Análisis y exportación"
+        title="Reportes"
+        subtitle="Filtra por periodo para obtener el consolidado financiero y operativo, con posibilidad de exportación inmediata a Excel."
+        actions={
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25}>
+            <TextField
+              label="Fecha inicial"
+              type="date"
+              value={fechaInicio}
+              onChange={(event) => setFechaInicio(event.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Fecha final"
+              type="date"
+              value={fechaFin}
+              onChange={(event) => setFechaFin(event.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <Button variant="contained" onClick={handleBuscar} startIcon={<ManageSearchOutlinedIcon />}>
+              Generar reporte
+            </Button>
+            <Button variant="outlined" onClick={exportarExcel} startIcon={<DownloadOutlinedIcon />}>
+              Exportar
+            </Button>
+          </Stack>
+        }
+      />
 
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Fecha Inicio"
-            type="date"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-          />
+      {error ? <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert> : null}
+
+      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Ingreso total" value={currencyFormatter.format(kpis.ingreso_total || 0)} />
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <TextField
-            label="Fecha Fin"
-            type="date"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-          />
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Balance general" value={currencyFormatter.format(kpis.balance_general || 0)} tone="success" />
         </Grid>
-        <Grid item xs={12} sm={4} sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="contained" onClick={handleBuscar} fullWidth sx={{ height: '56px' }}>
-            Buscar
-          </Button>
-          <Button variant="outlined" onClick={exportarExcel} fullWidth sx={{ height: '56px' }}>
-            Exportar Excel
-          </Button>
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Saldo restante" value={currencyFormatter.format(kpis.saldo_restante || 0)} tone="accent" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Abonos totales" value={currencyFormatter.format(kpis.abonos_totales || 0)} />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Egresos" value={currencyFormatter.format(kpis.egreso_total || 0)} tone="accent" />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={4}>
+          <MetricCard label="Trámites del periodo" value={String(kpis.tramites_mensuales || 0)} />
         </Grid>
       </Grid>
 
-      {/* Sección de KPI mejorada */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        {[
-          { label: 'Ingreso Total', value: kpis.ingreso_total },
-          { label: 'Abonos Totales', value: kpis.abonos_totales },
-          { label: 'Egreso Total', value: kpis.egreso_total },
-          { label: 'Balance General', value: kpis.balance_general },
-          { label: 'Trámites Mensuales', value: kpis.tramites_mensuales },
-          { label: 'Saldo Restante', value: kpis.saldo_restante }
-        ].map((kpi, index) => (
-          <Grid item xs={12} sm={4} key={index}>
-            <Card sx={{ backgroundColor: '#F5F5F5', p: 2 }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                  {kpi.label}
-                </Typography>
-                <Typography variant="h5" sx={{ textAlign: 'center', color: '#555555' }}>
-                  {kpi.label === 'Trámites Mensuales'
-                    ? kpi.value
-                    : currencyFormatter.format(kpi.value || 0)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Tabla de transacciones con balance general al final */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#06588a' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tipo</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Concepto</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Monto</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {datos.map(item => (
-              <TableRow key={item.id}>
-                <TableCell>{item.id}</TableCell>
-                <TableCell><strong>{item.tipo}</strong></TableCell>
-                <TableCell>{item.concepto}</TableCell>
-                <TableCell>{new Date(item.fecha).toISOString().slice(0, 10)}</TableCell>
-                <TableCell>{currencyFormatter.format(parseFloat(item.monto))}</TableCell>
-              </TableRow>
-            ))}
-            {datos.length === 0 && (
+      <SectionCard
+        title="Detalle de transacciones"
+        subtitle="Registro consolidado de movimientos dentro del rango consultado."
+      >
+        <TableContainer>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No hay datos en este rango de fechas
-                </TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Concepto</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell align="right">Monto</TableCell>
               </TableRow>
-            )}
-            {/* Fila de balance general */}
-            <TableRow sx={{ backgroundColor: '#e0e0e0', fontWeight: 'bold' }}>
-              <TableCell colSpan={4} align="right">
-                <strong>Balance General:</strong>
-              </TableCell>
-              <TableCell>
-                <strong>{currencyFormatter.format(kpis.balance_general)}</strong>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+            </TableHead>
+            <TableBody>
+              {datos.length > 0 ? (
+                datos.map((item) => (
+                  <TableRow key={item.id} hover>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell sx={{ textTransform: 'capitalize', fontWeight: 800 }}>{item.tipo}</TableCell>
+                    <TableCell>{item.concepto}</TableCell>
+                    <TableCell>{new Date(item.fecha).toISOString().slice(0, 10)}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(parseFloat(item.monto))}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <Typography variant="body1">Aún no hay datos para este periodo.</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Genera el reporte con otro rango o registra movimientos en finanzas.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </SectionCard>
+    </>
   );
-};
+}
 
 export default Reportes;
