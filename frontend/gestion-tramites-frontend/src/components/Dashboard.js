@@ -47,31 +47,219 @@ ChartJS.register(
   Filler
 );
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'top',
-      labels: {
-        usePointStyle: true,
-        color: '#42515c',
+const shortDateFormatter = new Intl.DateTimeFormat('es-MX', {
+  day: 'numeric',
+  month: 'short',
+});
+
+const fullDateFormatter = new Intl.DateTimeFormat('es-MX', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+function formatChartDateLabel(value, formatter = shortDateFormatter) {
+  if (!value) {
+    return '';
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return formatter.format(parsedDate);
+}
+
+function formatCurrencyTick(value) {
+  const absoluteValue = Math.abs(Number(value) || 0);
+
+  if (absoluteValue >= 1000000) {
+    return `$${(Number(value) / 1000000).toFixed(1).replace('.0', '')}M`;
+  }
+
+  if (absoluteValue >= 1000) {
+    return `$${(Number(value) / 1000).toFixed(1).replace('.0', '')}k`;
+  }
+
+  return currencyFormatter.format(Number(value) || 0);
+}
+
+function baseChartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: 'index',
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+        align: 'start',
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 18,
+          color: '#42515c',
+          font: {
+            size: 12,
+            weight: 600,
+          },
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(13, 34, 41, 0.94)',
+        padding: 12,
+        titleColor: '#f8fafc',
+        bodyColor: '#f8fafc',
+        displayColors: true,
       },
     },
+    scales: {
+      y: {
+        beginAtZero: true,
+        border: { display: false },
+        grid: {
+          color: 'rgba(13, 59, 69, 0.08)',
+          drawTicks: false,
+        },
+        ticks: {
+          color: '#5c6a74',
+          padding: 10,
+        },
+      },
+      x: {
+        border: { display: false },
+        grid: { display: false },
+        ticks: {
+          color: '#5c6a74',
+          padding: 8,
+          autoSkip: true,
+          maxTicksLimit: 7,
+          minRotation: 0,
+          maxRotation: 0,
+        },
+      },
+    },
+  };
+}
+
+const financialChartOptions = {
+  ...baseChartOptions(),
+  plugins: {
+    ...baseChartOptions().plugins,
     tooltip: {
-      backgroundColor: 'rgba(13, 34, 41, 0.92)',
-      padding: 12,
+      ...baseChartOptions().plugins.tooltip,
+      callbacks: {
+        title(items) {
+          return formatChartDateLabel(items?.[0]?.label, fullDateFormatter);
+        },
+        label(context) {
+          const label = context.dataset?.label || 'Monto';
+          return `${label}: ${currencyFormatter.format(context.parsed.y || 0)}`;
+        },
+      },
     },
   },
   scales: {
+    ...baseChartOptions().scales,
     y: {
-      beginAtZero: true,
-      grid: { color: 'rgba(13, 59, 69, 0.08)' },
-      ticks: { color: '#5c6a74' },
+      ...baseChartOptions().scales.y,
+      title: {
+        display: true,
+        text: 'Monto (MXN)',
+        color: '#5c6a74',
+        font: {
+          size: 12,
+          weight: 600,
+        },
+      },
+      ticks: {
+        ...baseChartOptions().scales.y.ticks,
+        callback(value) {
+          return formatCurrencyTick(value);
+        },
+        maxTicksLimit: 6,
+      },
     },
     x: {
-      grid: { display: false },
-      ticks: { color: '#5c6a74', maxRotation: 0 },
+      ...baseChartOptions().scales.x,
+      title: {
+        display: true,
+        text: 'Fecha',
+        color: '#5c6a74',
+        font: {
+          size: 12,
+          weight: 600,
+        },
+      },
+      ticks: {
+        ...baseChartOptions().scales.x.ticks,
+        callback(value) {
+          return formatChartDateLabel(this.getLabelForValue(value));
+        },
+      },
+    },
+  },
+};
+
+const operationsChartOptions = {
+  ...baseChartOptions(),
+  plugins: {
+    ...baseChartOptions().plugins,
+    tooltip: {
+      ...baseChartOptions().plugins.tooltip,
+      callbacks: {
+        title(items) {
+          return formatChartDateLabel(items?.[0]?.label, fullDateFormatter);
+        },
+        label(context) {
+          return `Trámites: ${Math.round(context.parsed.y || 0)}`;
+        },
+      },
+    },
+  },
+  scales: {
+    ...baseChartOptions().scales,
+    y: {
+      ...baseChartOptions().scales.y,
+      title: {
+        display: true,
+        text: 'Trámites',
+        color: '#5c6a74',
+        font: {
+          size: 12,
+          weight: 600,
+        },
+      },
+      ticks: {
+        ...baseChartOptions().scales.y.ticks,
+        precision: 0,
+        stepSize: 1,
+        callback(value) {
+          return Math.round(Number(value) || 0);
+        },
+      },
+    },
+    x: {
+      ...baseChartOptions().scales.x,
+      title: {
+        display: true,
+        text: 'Fecha',
+        color: '#5c6a74',
+        font: {
+          size: 12,
+          weight: 600,
+        },
+      },
+      ticks: {
+        ...baseChartOptions().scales.x.ticks,
+        callback(value) {
+          return formatChartDateLabel(this.getLabelForValue(value));
+        },
+      },
     },
   },
 };
@@ -278,7 +466,7 @@ function Dashboard() {
             subtitle="Ingresos y egresos por fecha."
           >
             <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {loading ? <CircularProgress /> : <Bar data={chartDataIngresos} options={chartOptions} />}
+              {loading ? <CircularProgress /> : <Bar data={chartDataIngresos} options={financialChartOptions} />}
             </Box>
           </SectionCard>
         </Grid>
@@ -288,7 +476,7 @@ function Dashboard() {
             subtitle="Trámites iniciados por día."
           >
             <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {loading ? <CircularProgress /> : <Line data={chartDataTramites} options={chartOptions} />}
+              {loading ? <CircularProgress /> : <Line data={chartDataTramites} options={operationsChartOptions} />}
             </Box>
           </SectionCard>
         </Grid>
