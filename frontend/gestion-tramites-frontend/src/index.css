@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --surface: #fffdf8;
-  --ink: #16313b;
-  --muted: #61707b;
-  --line: rgba(9, 59, 69, 0.08);
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted: #475467;
+  --line: rgba(15, 23, 42, 0.08);
 }
 
 * {
@@ -42,6 +42,6 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(13, 94, 111, 0.28);
+  background: rgba(15, 23, 42, 0.16);
   border-radius: 999px;
 }

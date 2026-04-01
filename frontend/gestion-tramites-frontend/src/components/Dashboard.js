@@ -8,7 +8,6 @@ import {
   InputAdornment,
   Stack,
   TextField,
-  Typography,
 } from '@mui/material';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
@@ -115,14 +114,14 @@ function Dashboard() {
           {
             label: 'Ingresos',
             data: chartResponse.data.ingresos,
-            backgroundColor: 'rgba(13, 94, 111, 0.72)',
-            borderRadius: 10,
+            backgroundColor: 'rgba(17, 24, 39, 0.86)',
+            borderRadius: 8,
           },
           {
             label: 'Egresos',
             data: chartResponse.data.egresos,
-            backgroundColor: 'rgba(197, 140, 69, 0.76)',
-            borderRadius: 10,
+            backgroundColor: 'rgba(15, 118, 110, 0.72)',
+            borderRadius: 8,
           },
         ],
       });
@@ -133,8 +132,8 @@ function Dashboard() {
           {
             label: 'Trámites diarios',
             data: chartResponse.data.tramites,
-            borderColor: '#0d5e6f',
-            backgroundColor: 'rgba(13, 94, 111, 0.14)',
+            borderColor: '#111827',
+            backgroundColor: 'rgba(17, 24, 39, 0.08)',
             fill: true,
             tension: 0.35,
             pointRadius: 3,
@@ -159,9 +158,9 @@ function Dashboard() {
   return (
     <Box>
       <PageHeader
-        eyebrow="Vista ejecutiva"
-        title="Dashboard"
-        subtitle="Consulta el estado general del despacho, la salud financiera del periodo y el avance operativo del equipo."
+        eyebrow="Dashboard"
+        title="Resumen operativo"
+        subtitle="Indicadores financieros y actividad del periodo."
         actions={
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25}>
             <TextField
@@ -195,7 +194,7 @@ function Dashboard() {
               }}
             />
             <Button variant="contained" onClick={loadDashboard} disabled={loading}>
-              {loading ? 'Actualizando...' : 'Actualizar panel'}
+              {loading ? 'Actualizando...' : 'Actualizar'}
             </Button>
           </Stack>
         }
@@ -208,7 +207,7 @@ function Dashboard() {
           <MetricCard
             label="Ingreso total"
             value={currencyFormatter.format(kpis.ingreso_total || 0)}
-            helper="Incluye ingresos, abonos y documentos del periodo."
+            helper="Ingresos del rango."
             icon={<AccountBalanceWalletOutlinedIcon />}
           />
         </Grid>
@@ -216,7 +215,7 @@ function Dashboard() {
           <MetricCard
             label="Balance general"
             value={currencyFormatter.format(kpis.balance_general || 0)}
-            helper="Resultado neto del periodo consultado."
+            helper="Resultado neto del rango."
             icon={<SavingsOutlinedIcon />}
             tone="success"
           />
@@ -225,7 +224,7 @@ function Dashboard() {
           <MetricCard
             label="Saldo restante"
             value={currencyFormatter.format(totalSaldoRestante)}
-            helper="Monto pendiente consolidado de la cartera activa."
+            helper="Cartera pendiente."
             icon={<PriceCheckOutlinedIcon />}
             tone="accent"
           />
@@ -234,7 +233,7 @@ function Dashboard() {
           <MetricCard
             label="Trámites del periodo"
             value={String(kpis.tramites_mensuales || 0)}
-            helper="Expedientes creados dentro del rango actual."
+            helper="Expedientes abiertos."
             icon={<FolderSharedOutlinedIcon />}
           />
         </Grid>
@@ -276,7 +275,7 @@ function Dashboard() {
         <Grid item xs={12} lg={7}>
           <SectionCard
             title="Flujo financiero"
-            subtitle="Comparativo de ingresos y egresos a lo largo del rango consultado."
+            subtitle="Ingresos y egresos por fecha."
           >
             <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {loading ? <CircularProgress /> : <Bar data={chartDataIngresos} options={chartOptions} />}
@@ -286,7 +285,7 @@ function Dashboard() {
         <Grid item xs={12} lg={5}>
           <SectionCard
             title="Ritmo operativo"
-            subtitle="Volumen diario de trámites iniciados en el sistema."
+            subtitle="Trámites iniciados por día."
           >
             <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {loading ? <CircularProgress /> : <Line data={chartDataTramites} options={chartOptions} />}
@@ -294,36 +293,6 @@ function Dashboard() {
           </SectionCard>
         </Grid>
       </Grid>
-
-      <SectionCard
-        title="Lectura rápida del periodo"
-        subtitle="Resumen para revisar la operación sin entrar todavía a detalle por módulo."
-        sx={{ mt: 2.5 }}
-      >
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6">Finanzas</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              El sistema reporta un balance de {currencyFormatter.format(kpis.balance_general || 0)} con una cartera
-              pendiente acumulada de {currencyFormatter.format(totalSaldoRestante)}.
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6">Cobranza</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Se registraron {currencyFormatter.format(kpis.abonos_totales || 0)} en abonos y {currencyFormatter.format(kpis.totalEfectivo || 0)}
-              {' '}en efectivo dentro del periodo consultado.
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6">Operación</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Hay {clientes.length} clientes cargados en el sistema y {kpis.tramites_mensuales || 0} trámites nuevos
-              dentro del rango actual.
-            </Typography>
-          </Grid>
-        </Grid>
-      </SectionCard>
     </Box>
   );
 }

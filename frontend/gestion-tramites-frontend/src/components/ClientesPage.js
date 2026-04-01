@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Grid,
   IconButton,
   InputAdornment,
+  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -19,13 +21,15 @@ import {
   Typography,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import PersonAddAlt1OutlinedIcon from '@mui/icons-material/PersonAddAlt1Outlined';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import Groups2OutlinedIcon from '@mui/icons-material/Groups2Outlined';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import QueryStatsOutlinedIcon from '@mui/icons-material/QueryStatsOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
+import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined';
+import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined';
 import ClienteForm from './ClienteForm';
 import EditarClienteModal from './EditarClienteModal';
 import SubirDocumentosModal from './SubirDocumentosModal';
@@ -37,16 +41,24 @@ import MetricCard from './ui/MetricCard';
 import PageHeader from './ui/PageHeader';
 import SectionCard from './ui/SectionCard';
 import StatusChip from './ui/StatusChip';
+import EntryPanelDrawer from './ui/EntryPanelDrawer';
+import {
+  buildStatusCounts,
+  matchesStatusFilter,
+  STATUS_FILTER_OPTIONS,
+} from '../utils/statusUtils';
 
 function ClientesPage() {
   const [clientes, setClientes] = useState([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
   const [orderBy, setOrderBy] = useState('nombre');
   const [order, setOrder] = useState('asc');
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [editarModalOpen, setEditarModalOpen] = useState(false);
   const [documentosModalOpen, setDocumentosModalOpen] = useState(false);
   const [verInfoModalOpen, setVerInfoModalOpen] = useState(false);
+  const [registroOpen, setRegistroOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState({ open: false, severity: 'success', message: '' });
@@ -71,39 +83,58 @@ function ClientesPage() {
   }, [cargarClientes]);
 
   const filteredClientes = useMemo(() => {
-    return clientes.filter((cliente) =>
-      cliente.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      (cliente.numero_recibo && cliente.numero_recibo.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [clientes, search]);
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return clientes.filter((cliente) => {
+      const matchesSearch = !normalizedSearch || [
+        cliente.nombre,
+        cliente.numero_recibo,
+        cliente.estado_tramite,
+      ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+
+      const matchesStatus = matchesStatusFilter(cliente.estado_tramite, statusFilter);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [clientes, search, statusFilter]);
 
   const sortedClientes = useMemo(() => {
     const collection = [...filteredClientes];
     return collection.sort((a, b) => {
-      if (orderBy === 'nombre') {
-        return order === 'asc' ? a.nombre.localeCompare(b.nombre) : b.nombre.localeCompare(a.nombre);
-      }
+      const direction = order === 'asc' ? 1 : -1;
+
       if (orderBy === 'numero_recibo') {
-        return order === 'asc'
-          ? (a.numero_recibo || '').localeCompare(b.numero_recibo || '')
-          : (b.numero_recibo || '').localeCompare(a.numero_recibo || '');
+        return direction * String(a.numero_recibo || '').localeCompare(String(b.numero_recibo || ''), 'es', { sensitivity: 'base' });
       }
+
+      if (orderBy === 'nombre') {
+        return direction * String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
+      }
+
+      if (orderBy === 'estado_tramite') {
+        return direction * String(a.estado_tramite || '').localeCompare(String(b.estado_tramite || ''), 'es', { sensitivity: 'base' });
+      }
+
+      if (orderBy === 'fecha_inicio_tramite') {
+        const timeA = a.fecha_inicio_tramite ? new Date(a.fecha_inicio_tramite).getTime() : 0;
+        const timeB = b.fecha_inicio_tramite ? new Date(b.fecha_inicio_tramite).getTime() : 0;
+        return direction * (timeA - timeB);
+      }
+
       if (orderBy === 'integrantes') {
-        return order === 'asc'
-          ? Number(a.integrantes || 0) - Number(b.integrantes || 0)
-          : Number(b.integrantes || 0) - Number(a.integrantes || 0);
+        return direction * (Number(a.integrantes || 0) - Number(b.integrantes || 0));
       }
+
       if (orderBy === 'restante') {
-        return order === 'asc'
-          ? Number(a.restante || 0) - Number(b.restante || 0)
-          : Number(b.restante || 0) - Number(a.restante || 0);
+        return direction * (Number(a.restante || 0) - Number(b.restante || 0));
       }
+
       return 0;
     });
   }, [filteredClientes, order, orderBy]);
 
-  const totalIntegrantes = clientes.reduce((sum, cliente) => sum + Number(cliente.integrantes || 0), 0);
   const saldoPendiente = clientes.reduce((sum, cliente) => sum + Number(cliente.restante || 0), 0);
+  const statusCounts = useMemo(() => buildStatusCounts(clientes), [clientes]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -150,58 +181,85 @@ function ClientesPage() {
   return (
     <Box>
       <PageHeader
-        eyebrow="Cartera activa"
-        title="Clientes"
-        subtitle="Administra expedientes, consulta estados, adjunta documentación y mantén visibilidad del saldo pendiente por cliente."
+        eyebrow="Clientes"
+        title="Cartera"
+        subtitle="Seguimiento de expedientes, estados y saldos."
+        actions={(
+          <Button variant="contained" startIcon={<PersonAddAlt1OutlinedIcon />} onClick={() => setRegistroOpen(true)}>
+            Nuevo cliente
+          </Button>
+        )}
       />
 
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={3}>
           <MetricCard
-            label="Clientes registrados"
+            label="Total de clientes"
             value={String(clientes.length)}
-            helper="Expedientes actualmente almacenados en el sistema."
-            icon={<Inventory2OutlinedIcon />}
+            helper="Expedientes registrados."
+            icon={<FolderOpenOutlinedIcon />}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={3}>
           <MetricCard
-            label="Integrantes acumulados"
-            value={String(totalIntegrantes)}
-            helper="Suma de integrantes reportados en la cartera."
-            icon={<Groups2OutlinedIcon />}
+            label="En proceso"
+            value={String(statusCounts.en_proceso)}
+            helper="Expedientes activos."
+            icon={<PendingActionsOutlinedIcon />}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MetricCard
+            label="Concluidos"
+            value={String(statusCounts.concluido)}
+            helper="Expedientes terminados."
+            icon={<TaskAltOutlinedIcon />}
+            tone="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
           <MetricCard
             label="Saldo pendiente"
             value={currencyFormatter.format(saldoPendiente)}
-            helper="Pendiente total por cobrar según la ficha de clientes."
-            icon={<QueryStatsOutlinedIcon />}
+            helper="Pendiente total por cobrar."
+            icon={<AccountBalanceWalletOutlinedIcon />}
             tone="accent"
           />
         </Grid>
       </Grid>
 
-      <ClienteForm onClienteAgregado={(nuevoCliente) => setClientes((current) => [...current, nuevoCliente])} />
-
       <SectionCard
-        title="Listado de clientes"
-        subtitle="Filtra por nombre o número de recibo y trabaja desde la misma tabla con acciones directas."
+        title="Cartera de clientes"
+        subtitle="Busca, filtra por estado y trabaja desde la misma tabla."
         actions={
-          <TextField
-            label="Buscar cliente"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            sx={{ minWidth: { xs: '100%', md: 320 } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', lg: 'auto' } }}>
+            <TextField
+              label="Buscar"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              sx={{ minWidth: { xs: '100%', md: 280 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              label="Estado"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              sx={{ minWidth: { xs: '100%', md: 180 } }}
+            >
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
         }
       >
         {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
@@ -210,8 +268,8 @@ function ClientesPage() {
           Mostrando {sortedClientes.length} de {clientes.length} clientes.
         </Typography>
 
-        <TableContainer>
-          <Table>
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+          <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell>
@@ -241,7 +299,24 @@ function ClientesPage() {
                     Integrantes
                   </TableSortLabel>
                 </TableCell>
-                <TableCell>Estado</TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'estado_tramite'}
+                    direction={orderBy === 'estado_tramite' ? order : 'asc'}
+                    onClick={() => handleRequestSort('estado_tramite')}
+                  >
+                    Estado
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'fecha_inicio_tramite'}
+                    direction={orderBy === 'fecha_inicio_tramite' ? order : 'asc'}
+                    onClick={() => handleRequestSort('fecha_inicio_tramite')}
+                  >
+                    Inicio
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell align="right">
                   <TableSortLabel
                     active={orderBy === 'restante'}
@@ -257,7 +332,7 @@ function ClientesPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <Stack spacing={2} alignItems="center">
                       <CircularProgress />
                       <Typography variant="body2" color="text.secondary">
@@ -279,6 +354,7 @@ function ClientesPage() {
                     <TableCell>
                       <StatusChip label={cliente.estado_tramite} />
                     </TableCell>
+                    <TableCell>{cliente.fecha_inicio_tramite?.slice(0, 10) || '—'}</TableCell>
                     <TableCell align="right">{currencyFormatter.format(Number(cliente.restante || 0))}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Editar cliente">
@@ -306,10 +382,10 @@ function ClientesPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                    <Typography variant="body1">No hay clientes que coincidan con la búsqueda.</Typography>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <Typography variant="body1">No hay resultados para este filtro.</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Prueba con otro nombre, otro número de recibo o registra un nuevo expediente.
+                      Ajusta la búsqueda o el estado seleccionado.
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -318,6 +394,21 @@ function ClientesPage() {
           </Table>
         </TableContainer>
       </SectionCard>
+
+      <EntryPanelDrawer
+        open={registroOpen}
+        onClose={() => setRegistroOpen(false)}
+        title="Nuevo cliente"
+        subtitle="Captura el expediente en un panel separado para mantener limpia la vista de cartera."
+      >
+        {registroOpen ? (
+          <ClienteForm
+            embedded
+            onCancel={() => setRegistroOpen(false)}
+            onClienteAgregado={(nuevoCliente) => setClientes((current) => [...current, nuevoCliente])}
+          />
+        ) : null}
+      </EntryPanelDrawer>
 
       {selectedCliente ? (
         <>

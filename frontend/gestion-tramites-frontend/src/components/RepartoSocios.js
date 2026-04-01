@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Box,
   Button,
   Grid,
   IconButton,
@@ -8,7 +7,7 @@ import {
   ListItem,
   ListItemText,
   MenuItem,
-  Stack,
+  Paper,
   TextField,
   Typography,
 } from '@mui/material';
@@ -143,7 +142,7 @@ function RepartoSocios() {
 
       <SectionCard
         title="Reparto de utilidades"
-        subtitle="Consulta el cálculo neto del periodo y administra retiros ya aplicados a cada socio."
+        subtitle="Utilidad neta y retiros aplicados en el rango."
       >
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
@@ -177,7 +176,7 @@ function RepartoSocios() {
           <Grid item xs={12} lg={5}>
             <SectionCard
               title="Registrar retiro"
-              subtitle="Aplica retiros del periodo para mantener el cálculo actualizado."
+              subtitle="Captura un retiro del periodo."
               sx={{ height: '100%' }}
             >
               <Grid container spacing={2} component="form" onSubmit={handleRetiroSubmit}>
@@ -229,7 +228,7 @@ function RepartoSocios() {
           <Grid item xs={12} lg={7}>
             <SectionCard
               title="Retiros registrados"
-              subtitle="Movimientos capturados dentro del rango consultado."
+              subtitle="Movimientos del periodo consultado."
               sx={{ height: '100%' }}
             >
               {listaRetiros.length ? (
@@ -256,35 +255,30 @@ function RepartoSocios() {
                   No hay retiros registrados en este periodo.
                 </Typography>
               )}
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={2}
-                sx={{
-                  mt: 3,
-                  p: 2,
-                  borderRadius: 4,
-                  backgroundColor: 'rgba(13, 94, 111, 0.06)',
-                }}
-              >
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">Liz</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Retirado: {currencyFormatter.format(Number(data.retiradoLiz || 0))}
-                  </Typography>
-                  <Typography variant="body1" sx={{ mt: 0.75, fontWeight: 800 }}>
-                    Disponible: {currencyFormatter.format(Number(data.parteLiz || 0))}
-                  </Typography>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">Alberto</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Retirado: {currencyFormatter.format(Number(data.retiradoAlberto || 0))}
-                  </Typography>
-                  <Typography variant="body1" sx={{ mt: 0.75, fontWeight: 800 }}>
-                    Disponible: {currencyFormatter.format(Number(data.parteAlberto || 0))}
-                  </Typography>
-                </Box>
-              </Stack>
+              <Grid container spacing={2} sx={{ mt: 1.5 }}>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">Liz</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Retirado: {currencyFormatter.format(Number(data.retiradoLiz || 0))}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mt: 1, fontWeight: 800 }}>
+                      Disponible: {currencyFormatter.format(Number(data.parteLiz || 0))}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6">Alberto</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Retirado: {currencyFormatter.format(Number(data.retiradoAlberto || 0))}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mt: 1, fontWeight: 800 }}>
+                      Disponible: {currencyFormatter.format(Number(data.parteAlberto || 0))}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
             </SectionCard>
           </Grid>
         </Grid>

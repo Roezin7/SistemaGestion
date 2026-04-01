@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  AppBar,
   Box,
   Button,
   Container,
@@ -8,7 +7,6 @@ import {
   Stack,
   Tab,
   Tabs,
-  Toolbar,
   Typography,
 } from '@mui/material';
 import {
@@ -92,110 +90,89 @@ function App() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', py: { xs: 2, md: 3 } }}>
-      <Container maxWidth="xl">
-        <Box
-          sx={{
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 8,
-            mb: 3,
-            px: { xs: 2.5, md: 4 },
-            py: { xs: 2.5, md: 3.5 },
-            background:
-              'linear-gradient(135deg, rgba(9,59,69,0.95), rgba(13,94,111,0.92) 52%, rgba(197,140,69,0.82) 140%)',
-            color: '#ffffff',
-          }}
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'radial-gradient(circle at top right, rgba(255,255,255,0.20), transparent 28%), radial-gradient(circle at bottom left, rgba(255,255,255,0.10), transparent 32%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <AppBar position="static">
-            <Toolbar disableGutters sx={{ px: 0, minHeight: 'unset !important' }}>
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={2}
-                justifyContent="space-between"
-                alignItems={{ xs: 'flex-start', md: 'center' }}
-                sx={{ width: '100%' }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Box
+    <Box sx={{ minHeight: '100vh' }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 2, md: 3 } }}>
+        <Paper elevation={0} sx={{ p: { xs: 2, md: 2.5 }, mb: 3 }}>
+          <Stack
+            direction={{ xs: 'column', xl: 'row' }}
+            spacing={2.5}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', xl: 'center' }}
+          >
+            <Stack spacing={2} sx={{ flex: 1, width: '100%' }}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 3,
+                    backgroundColor: 'rgba(17, 24, 39, 0.04)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <img src={logo} alt="Logo" style={{ height: 36 }} />
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body2"
                     sx={{
-                      width: 68,
-                      height: 68,
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(255,255,255,0.12)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      backdropFilter: 'blur(16px)',
+                      color: 'text.secondary',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      fontWeight: 700,
                     }}
                   >
-                    <img src={logo} alt="Logo" style={{ height: 50 }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.82)', letterSpacing: '0.18em' }}>
-                      PANEL OPERATIVO
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: '#ffffff', mt: 0.5 }}>
-                      Sistema de Gestión de Trámites Migratorios
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.78)', mt: 0.75 }}>
-                      Control diario de clientes, documentación, finanzas y reportes del equipo.
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      px: 2,
-                      py: 1.25,
-                      minWidth: 200,
-                      backgroundColor: 'rgba(255,255,255,0.14)',
-                      color: '#ffffff',
-                      border: '1px solid rgba(255,255,255,0.16)',
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.74)' }}>
-                      Sesión activa
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.25, fontWeight: 700 }}>
-                      {user?.username} · {user?.rol}
-                    </Typography>
-                  </Paper>
-                  {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
-                  <Button variant="outlined" color="inherit" onClick={handleLogout} sx={{ borderColor: 'rgba(255,255,255,0.24)' }}>
-                    Cerrar sesión
-                  </Button>
-                </Stack>
+                    Casa Blanca
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 0.5 }}>
+                    Sistema de gestión migratoria
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Operación diaria, expedientes, documentos y control financiero.
+                  </Typography>
+                </Box>
               </Stack>
-            </Toolbar>
-          </AppBar>
-        </Box>
 
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 1, md: 1.5 },
-            mb: 3,
-            border: '1px solid rgba(9,59,69,0.08)',
-            backgroundColor: 'rgba(255,253,248,0.88)',
-          }}
-        >
-          <Tabs value={tabIndex} onChange={(_, newIndex) => setTabIndex(newIndex)} aria-label="tabs" variant="scrollable">
-            <Tab label="Dashboard" icon={<DashboardIcon />} iconPosition="start" {...a11yProps(0)} />
-            <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(1)} />
-            <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(2)} />
-            <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(3)} />
-          </Tabs>
+              <Tabs value={tabIndex} onChange={(_, newIndex) => setTabIndex(newIndex)} aria-label="tabs" variant="scrollable">
+                <Tab label="Dashboard" icon={<DashboardIcon />} iconPosition="start" {...a11yProps(0)} />
+                <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(1)} />
+                <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(2)} />
+                <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(3)} />
+              </Tabs>
+            </Stack>
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              sx={{ width: { xs: '100%', xl: 'auto' } }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  px: 1.75,
+                  py: 1.25,
+                  minWidth: 220,
+                  backgroundColor: '#f8fafc',
+                }}
+              >
+                <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Sesión activa
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 700, color: 'text.primary' }}>
+                  {user?.username} · {user?.rol}
+                </Typography>
+              </Paper>
+              {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
+              <Button variant="outlined" onClick={handleLogout}>
+                Cerrar sesión
+              </Button>
+            </Stack>
+          </Stack>
         </Paper>
 
         <TabPanel value={tabIndex} index={0}>
@@ -221,12 +198,12 @@ function App() {
           spacing={2}
           sx={{
             mt: 4,
-            px: 1,
+            px: 0.5,
             color: 'text.secondary',
           }}
         >
           <Typography variant="body2">
-            Plataforma de operación interna para seguimiento migratorio, control documental y finanzas.
+            Plataforma interna para seguimiento migratorio, documentación y finanzas.
           </Typography>
           <img src={leaderLogo} alt="LEADER" style={{ height: 18 }} />
         </Stack>

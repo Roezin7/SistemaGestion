@@ -9,6 +9,22 @@ const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken, allowRoles } = require('../middleware');
 
+function normalizarTexto(valor) {
+  return typeof valor === 'string' ? valor.trim() : '';
+}
+
+function normalizarEnteroOpcional(valor) {
+  if (valor === '' || valor === null || typeof valor === 'undefined') {
+    return null;
+  }
+
+  const parsed = Number.parseInt(valor, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function normalizarFechaOpcional(valor) {
+  return valor === '' || valor === null || typeof valor === 'undefined' ? null : valor;
+}
 
 // Multer para subida de archivos
 const storage = multer.diskStorage({
@@ -78,7 +94,16 @@ router.get('/:id', verificarToken, async (req, res) => {
 // ── POST /clientes ──
 // Crea un cliente (no necesita recalcular: el GET ya lo hace dinámico)
 router.post('/', verificarToken, async (req, res) => {
-  const { nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite } = req.body;
+  const nombre = normalizarTexto(req.body.nombre);
+  const integrantes = normalizarEnteroOpcional(req.body.integrantes);
+  const numeroRecibo = normalizarTexto(req.body.numeroRecibo);
+  const estadoTramite = normalizarTexto(req.body.estadoTramite) || 'Recepción de documentos';
+  const fecha_inicio_tramite = normalizarFechaOpcional(req.body.fecha_inicio_tramite);
+
+  if (!nombre || !numeroRecibo) {
+    return res.status(400).json({ error: 'Nombre y número de recibo son obligatorios.' });
+  }
+
   try {
     const insert = await db.query(
       `INSERT INTO clientes
@@ -91,6 +116,7 @@ router.post('/', verificarToken, async (req, res) => {
     await registrarHistorial(req, `Se agregó cliente id ${nuevo.id}`);
     res.json(nuevo);
   } catch (err) {
+    console.error('Error al crear cliente:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -106,6 +132,10 @@ router.put('/:id', verificarToken, async (req, res) => {
   } = req.body;
 
   // Cadenas vacías → null
+  nombre                  = normalizarTexto(nombre) || null;
+  integrantes             = normalizarEnteroOpcional(integrantes);
+  numeroRecibo            = normalizarTexto(numeroRecibo) || null;
+  estadoTramite           = normalizarTexto(estadoTramite) || null;
   fecha_cita_cas         = fecha_cita_cas === ""         ? null : fecha_cita_cas;
   fecha_cita_consular    = fecha_cita_consular === ""    ? null : fecha_cita_consular;
   fecha_inicio_tramite   = fecha_inicio_tramite === ""   ? null : fecha_inicio_tramite;
@@ -157,6 +187,7 @@ router.put('/:id', verificarToken, async (req, res) => {
     `, [id]);
     res.json(result.rows[0]);
   } catch (err) {
+    console.error(`Error al actualizar cliente ${id}:`, err);
     res.status(500).json({ error: err.message });
   }
 });

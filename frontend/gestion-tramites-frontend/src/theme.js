@@ -1,11 +1,13 @@
 // src/theme.js
 import { alpha, createTheme } from '@mui/material/styles';
 
-const primaryMain = '#0d5e6f';
-const primaryDark = '#093b45';
-const accentMain = '#c58c45';
-const surfaceMain = '#fffdf8';
-const inkMain = '#16313b';
+const primaryMain = '#111827';
+const primaryDark = '#0b1220';
+const accentMain = '#0f766e';
+const surfaceMain = '#ffffff';
+const inkMain = '#101828';
+const mutedInk = '#475467';
+const lineColor = alpha('#0f172a', 0.08);
 
 const theme = createTheme({
   palette: {
@@ -13,36 +15,36 @@ const theme = createTheme({
     primary: {
       main: primaryMain,
       dark: primaryDark,
-      light: '#5e99a6',
+      light: '#344054',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: accentMain,
-      dark: '#8b5a1e',
-      light: '#f0c58e',
+      main: '#344054',
+      dark: '#1d2939',
+      light: '#98a2b3',
       contrastText: '#ffffff',
     },
     success: {
-      main: '#3d7d5b',
+      main: accentMain,
     },
     error: {
-      main: '#b6504f',
+      main: '#b42318',
     },
     warning: {
-      main: '#bf8a2c',
+      main: '#b54708',
     },
     background: {
-      default: '#f4f0e8',
+      default: '#f4f6f9',
       paper: surfaceMain,
     },
     text: {
       primary: inkMain,
-      secondary: '#61707b',
+      secondary: mutedInk,
     },
-    divider: alpha(primaryDark, 0.08),
+    divider: lineColor,
   },
   shape: {
-    borderRadius: 22,
+    borderRadius: 16,
   },
   typography: {
     fontFamily: '"Manrope", "Avenir Next", "Segoe UI", sans-serif',
@@ -52,12 +54,12 @@ const theme = createTheme({
       letterSpacing: '-0.03em',
     },
     h4: {
-      fontSize: '1.6rem',
+      fontSize: '1.5rem',
       fontWeight: 800,
       letterSpacing: '-0.025em',
     },
     h5: {
-      fontSize: '1.15rem',
+      fontSize: '1.1rem',
       fontWeight: 800,
     },
     h6: {
@@ -65,7 +67,12 @@ const theme = createTheme({
       fontWeight: 800,
     },
     body1: {
-      lineHeight: 1.7,
+      lineHeight: 1.6,
+      color: inkMain,
+    },
+    body2: {
+      lineHeight: 1.55,
+      color: mutedInk,
     },
     button: {
       fontWeight: 700,
@@ -77,8 +84,7 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background:
-            'radial-gradient(circle at top left, rgba(197,140,69,0.18), transparent 28%), radial-gradient(circle at top right, rgba(13,94,111,0.16), transparent 26%), linear-gradient(180deg, #f8f3ea 0%, #f2ede4 100%)',
+          background: 'linear-gradient(180deg, #f8fafc 0%, #f3f5f8 100%)',
           minHeight: '100vh',
         },
       },
@@ -95,17 +101,19 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 24,
+          borderRadius: 18,
           backgroundImage: 'none',
+          border: `1px solid ${lineColor}`,
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 24,
-          boxShadow: 'none',
-          border: `1px solid ${alpha(primaryDark, 0.08)}`,
+          borderRadius: 18,
+          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
+          border: `1px solid ${lineColor}`,
         },
       },
     },
@@ -115,57 +123,67 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 999,
-          padding: '10px 18px',
+          borderRadius: 12,
+          padding: '9px 16px',
         },
         containedPrimary: {
-          background: `linear-gradient(135deg, ${primaryMain}, ${primaryDark})`,
+          background: primaryMain,
+          '&:hover': {
+            background: primaryDark,
+          },
         },
         outlined: {
-          borderColor: alpha(primaryMain, 0.22),
+          borderColor: alpha(primaryMain, 0.14),
         },
       },
     },
     MuiTabs: {
       styleOverrides: {
         root: {
-          minHeight: 58,
+          minHeight: 44,
         },
         indicator: {
-          height: '100%',
+          height: 2,
           borderRadius: 999,
-          background: alpha(primaryMain, 0.12),
-          zIndex: 0,
-        },
-        flexContainer: {
-          gap: 8,
+          background: primaryMain,
         },
       },
     },
     MuiTab: {
       styleOverrides: {
         root: {
-          minHeight: 50,
-          borderRadius: 999,
-          fontWeight: 800,
-          color: '#52616c',
-          zIndex: 1,
+          minHeight: 44,
+          minWidth: 0,
+          padding: '10px 8px 14px',
+          marginRight: 20,
+          fontWeight: 700,
+          color: mutedInk,
           '&.Mui-selected': {
-            color: primaryDark,
+            color: primaryMain,
           },
         },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        size: 'small',
+      },
+    },
+    MuiFormControl: {
+      defaultProps: {
+        size: 'small',
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          backgroundColor: alpha('#ffffff', 0.86),
-          borderRadius: 18,
+          backgroundColor: surfaceMain,
+          borderRadius: 12,
           '& fieldset': {
-            borderColor: alpha(primaryDark, 0.12),
+            borderColor: lineColor,
           },
           '&:hover fieldset': {
-            borderColor: alpha(primaryMain, 0.26),
+            borderColor: alpha(primaryMain, 0.18),
           },
           '&.Mui-focused fieldset': {
             borderWidth: 1,
@@ -177,21 +195,25 @@ const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         head: {
-          fontWeight: 800,
-          color: '#f6efe3',
-          background: `linear-gradient(135deg, ${primaryDark}, ${primaryMain})`,
-          borderBottom: 'none',
+          fontWeight: 700,
+          fontSize: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: mutedInk,
+          background: '#f8fafc',
+          borderBottom: `1px solid ${lineColor}`,
         },
         body: {
-          borderBottom: `1px solid ${alpha(primaryDark, 0.08)}`,
+          borderBottom: `1px solid ${lineColor}`,
+          verticalAlign: 'middle',
         },
       },
     },
     MuiTableRow: {
       styleOverrides: {
         root: {
-          '&:nth-of-type(even) td': {
-            backgroundColor: alpha(primaryMain, 0.02),
+          '&:hover td': {
+            backgroundColor: alpha(primaryMain, 0.018),
           },
         },
       },
@@ -200,6 +222,39 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           fontWeight: 700,
+          borderRadius: 999,
+          border: `1px solid ${lineColor}`,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 20,
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          padding: '24px 24px 8px',
+          fontSize: '1.1rem',
+          fontWeight: 800,
+          color: inkMain,
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          padding: '8px 24px 0',
+        },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          padding: '16px 24px 24px',
         },
       },
     },

@@ -17,9 +17,9 @@ import RegisterPopup from './RegisterPopup';
 import api from '../services/api';
 
 const ACCESS_POINTS = [
-  'Control de expedientes, pagos y documentación en un solo lugar.',
-  'Métricas operativas y financieras con seguimiento por periodo.',
-  'Administración de usuarios con permisos por rol.',
+  'Expedientes, pagos y documentos en una misma operación.',
+  'Seguimiento financiero y operativo por periodo.',
+  'Accesos por rol y trazabilidad administrativa.',
 ];
 
 function LoginPage({ onLoginSuccess }) {
@@ -75,48 +75,53 @@ function LoginPage({ onLoginSuccess }) {
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 3, md: 5 },
-            border: '1px solid rgba(9, 59, 69, 0.08)',
-            background:
-              'linear-gradient(145deg, rgba(255,253,248,0.96), rgba(245,239,228,0.98))',
+            p: { xs: 3, md: 4.5 },
+            backgroundColor: 'background.paper',
           }}
         >
-          <Typography variant="overline" sx={{ letterSpacing: '0.18em', color: 'primary.main', fontWeight: 800 }}>
-            SISTEMA OPERATIVO
+          <Typography
+            variant="body2"
+            sx={{
+              letterSpacing: '0.08em',
+              color: 'text.secondary',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}
+          >
+            Acceso interno
           </Typography>
           <Typography variant="h3" sx={{ mt: 1 }}>
-            Gestión migratoria con control ejecutivo y trazabilidad diaria.
+            Operación migratoria con una interfaz clara y profesional.
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 2, maxWidth: 560 }}>
-            Mantén expedientes, finanzas, documentos y operación administrativa bajo una misma interfaz,
-            con seguimiento claro y consistencia para el equipo.
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, maxWidth: 560 }}>
+            Centraliza cartera, finanzas y documentación con un flujo sobrio para el equipo.
           </Typography>
 
-          <Stack spacing={1.5} sx={{ mt: 4 }}>
+          <Stack spacing={1.25} sx={{ mt: 4 }}>
             {ACCESS_POINTS.map((item) => (
               <Stack key={item} direction="row" spacing={1.5} alignItems="flex-start">
-                <TaskAltOutlinedIcon sx={{ color: 'secondary.main', mt: '2px' }} />
-                <Typography variant="body1">{item}</Typography>
+                <TaskAltOutlinedIcon sx={{ color: 'primary.main', mt: '2px', fontSize: 20 }} />
+                <Typography variant="body2" sx={{ color: 'text.primary' }}>{item}</Typography>
               </Stack>
             ))}
           </Stack>
 
           <Box
             sx={{
-              mt: 5,
-              p: 3,
-              borderRadius: 4,
-              backgroundColor: 'rgba(13, 94, 111, 0.08)',
-              border: '1px solid rgba(13, 94, 111, 0.08)',
+              mt: 4,
+              p: 2.5,
+              borderRadius: 3,
+              backgroundColor: '#f8fafc',
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           >
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
               <ShieldOutlinedIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h6">Acceso seguro para el equipo</Typography>
+              <Typography variant="h6">Acceso por rol</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary">
-              Usa tus credenciales institucionales para entrar al panel. El acceso está protegido por rol y
-              registra cambios relevantes del sistema.
+              El sistema restringe acciones sensibles y conserva historial de cambios administrativos.
             </Typography>
           </Box>
         </Paper>
@@ -125,7 +130,6 @@ function LoginPage({ onLoginSuccess }) {
           elevation={0}
           sx={{
             p: { xs: 3, md: 4 },
-            border: '1px solid rgba(9, 59, 69, 0.08)',
             backgroundColor: 'background.paper',
             display: 'flex',
             flexDirection: 'column',
@@ -133,10 +137,10 @@ function LoginPage({ onLoginSuccess }) {
           }}
         >
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <img src={logo} alt="Logo" style={{ width: 124, marginBottom: 18 }} />
+            <img src={logo} alt="Logo" style={{ width: 110, marginBottom: 16 }} />
             <Typography variant="h4">Iniciar sesión</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Ingresa para acceder al panel operativo del sistema.
+              Ingresa con tus credenciales institucionales.
             </Typography>
           </Box>
 

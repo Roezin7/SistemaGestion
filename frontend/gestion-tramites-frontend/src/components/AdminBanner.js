@@ -18,7 +18,7 @@ const AdminBanner = ({ onSelectOption }) => {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-      <Button color="inherit" onClick={handleMenuOpen}>
+      <Button variant="text" onClick={handleMenuOpen}>
         Administrar
       </Button>
       <Menu

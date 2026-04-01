@@ -13,6 +13,10 @@ function normalizarTipo(tipo) {
   return tipo;
 }
 
+function normalizarTexto(valor) {
+  return typeof valor === 'string' ? valor.trim() : '';
+}
+
 // ✅ Todos autenticados
 router.use(verificarToken);
 
@@ -38,15 +42,28 @@ router.use((req, res, next) => {
 
 // 2.1) Registrar cualquier transacción
 router.post('/', async (req, res) => {
-  const { tipo, concepto, fecha, monto, client_id, forma_pago } = req.body;
-  const tipoNormalizado = normalizarTipo(tipo);
+  const tipoNormalizado = normalizarTipo(req.body.tipo);
+  const concepto = normalizarTexto(req.body.concepto);
+  const fecha = req.body.fecha;
+  const monto = Number.parseFloat(req.body.monto);
+  const client_id = req.body.client_id || null;
+  const forma_pago = normalizarTexto(req.body.forma_pago) || 'efectivo';
+
+  if (!tipoNormalizado || !concepto || !fecha || Number.isNaN(monto) || monto <= 0) {
+    return res.status(400).json({ error: 'Tipo, concepto, fecha y un monto mayor a cero son obligatorios.' });
+  }
+
+  if ((tipoNormalizado === 'abono' || tipoNormalizado === 'documento') && !client_id) {
+    return res.status(400).json({ error: 'Debes seleccionar un cliente para registrar abonos o documentos.' });
+  }
+
   try {
     const result = await db.query(
       `INSERT INTO finanzas
          (tipo, concepto, fecha, monto, client_id, forma_pago)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING *`,
-      [tipoNormalizado, concepto, fecha, monto, client_id || null, forma_pago]
+      [tipoNormalizado, concepto, fecha, monto, client_id, forma_pago]
     );
     await registrarHistorial(req, `Se registró ${tipoNormalizado} id ${result.rows[0].id}`);
     res.json(result.rows[0]);
@@ -62,9 +79,14 @@ router.get('/reportes', async (req, res) => {
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
   try {
     const result = await db.query(
-      `SELECT * FROM finanzas
-       WHERE fecha BETWEEN $1 AND $2
-       ORDER BY fecha ASC`,
+      `SELECT
+         f.*,
+         c.nombre AS cliente_nombre,
+         c.numero_recibo
+       FROM finanzas f
+       LEFT JOIN clientes c ON c.id = f.client_id
+       WHERE f.fecha BETWEEN $1 AND $2
+       ORDER BY f.fecha ASC, f.id ASC`,
       [fechaInicio, fechaFin]
     );
     res.json(result.rows);
@@ -80,9 +102,14 @@ router.get('/ultimas', async (req, res) => {
   if (!fechaFin)    fechaFin    = new Date().toISOString().slice(0,10);
   try {
     const result = await db.query(
-      `SELECT * FROM finanzas
-       WHERE fecha BETWEEN $1 AND $2
-       ORDER BY fecha DESC`,
+      `SELECT
+         f.*,
+         c.nombre AS cliente_nombre,
+         c.numero_recibo
+       FROM finanzas f
+       LEFT JOIN clientes c ON c.id = f.client_id
+       WHERE f.fecha BETWEEN $1 AND $2
+       ORDER BY f.fecha DESC, f.id DESC`,
       [fechaInicio, fechaFin]
     );
     res.json(result.rows);

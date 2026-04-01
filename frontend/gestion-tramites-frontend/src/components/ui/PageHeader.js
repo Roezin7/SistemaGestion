@@ -13,21 +13,22 @@ function PageHeader({ eyebrow, title, subtitle, actions }) {
       <Box>
         {eyebrow && (
           <Typography
-            variant="overline"
+            variant="body2"
             sx={{
-              letterSpacing: '0.18em',
-              color: 'primary.main',
-              fontWeight: 800,
+              letterSpacing: '0.08em',
+              color: 'text.secondary',
+              fontWeight: 700,
+              textTransform: 'uppercase',
             }}
           >
             {eyebrow}
           </Typography>
         )}
-        <Typography variant="h3" sx={{ mt: 0.5 }}>
+        <Typography variant="h4" sx={{ mt: 0.5 }}>
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1, maxWidth: 720 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 720 }}>
             {subtitle}
           </Typography>
         )}

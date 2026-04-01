@@ -3,6 +3,8 @@ import {
   CircularProgress,
   Grid,
   IconButton,
+  InputAdornment,
+  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -16,9 +18,10 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import api from '../services/api';
 import { getDefaultDateRange } from '../utils/dateUtils';
 import { currencyFormatter } from '../utils/formatUtils';
@@ -27,10 +30,21 @@ import FeedbackSnackbar from './ui/FeedbackSnackbar';
 import MetricCard from './ui/MetricCard';
 import SectionCard from './ui/SectionCard';
 
+const TYPE_OPTIONS = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'ingreso', label: 'Ingreso' },
+  { value: 'egreso', label: 'Egreso' },
+  { value: 'abono', label: 'Abono' },
+  { value: 'retiro', label: 'Retiro' },
+  { value: 'documento', label: 'Documento' },
+];
+
 function UltimasTransacciones({ refreshSignal }) {
   const defaultRange = getDefaultDateRange();
   const [dateRange, setDateRange] = useState(defaultRange);
   const [transacciones, setTransacciones] = useState([]);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('todos');
   const [selectedTransaccion, setSelectedTransaccion] = useState(null);
   const [openEditarModal, setOpenEditarModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -59,17 +73,33 @@ function UltimasTransacciones({ refreshSignal }) {
     cargarTransacciones();
   }, [cargarTransacciones, refreshSignal]);
 
+  const filteredTransacciones = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return transacciones.filter((transaction) => {
+      const matchesType = typeFilter === 'todos' || transaction.tipo === typeFilter;
+      const matchesSearch = !normalizedSearch || [
+        transaction.tipo,
+        transaction.concepto,
+        transaction.cliente_nombre,
+        transaction.numero_recibo,
+      ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+
+      return matchesType && matchesSearch;
+    });
+  }, [search, transacciones, typeFilter]);
+
   const totalIngresos = useMemo(() => (
-    transacciones
+    filteredTransacciones
       .filter((transaction) => transaction.tipo === 'ingreso' || transaction.tipo === 'abono')
       .reduce((sum, transaction) => sum + parseFloat(transaction.monto), 0)
-  ), [transacciones]);
+  ), [filteredTransacciones]);
 
   const totalEgresos = useMemo(() => (
-    transacciones
+    filteredTransacciones
       .filter((transaction) => transaction.tipo === 'egreso' || transaction.tipo === 'retiro')
       .reduce((sum, transaction) => sum + parseFloat(transaction.monto), 0)
-  ), [transacciones]);
+  ), [filteredTransacciones]);
 
   const balanceGeneral = totalIngresos - totalEgresos;
 
@@ -101,14 +131,14 @@ function UltimasTransacciones({ refreshSignal }) {
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         <Grid item xs={12} md={4}>
           <MetricCard
-            label="Ingresos del rango"
+            label="Ingresos visibles"
             value={currencyFormatter.format(totalIngresos)}
             icon={<PaymentsOutlinedIcon />}
           />
         </Grid>
         <Grid item xs={12} md={4}>
           <MetricCard
-            label="Egresos del rango"
+            label="Egresos visibles"
             value={currencyFormatter.format(totalEgresos)}
             icon={<ReceiptLongOutlinedIcon />}
             tone="accent"
@@ -125,8 +155,38 @@ function UltimasTransacciones({ refreshSignal }) {
       </Grid>
 
       <SectionCard
-        title="Movimientos registrados"
-        subtitle="Consulta, edita o elimina transacciones dentro del rango seleccionado."
+        title="Movimientos"
+        subtitle="Consulta, filtra y administra las transacciones del rango."
+        actions={
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', lg: 'auto' } }}>
+            <TextField
+              label="Buscar"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              sx={{ minWidth: { xs: '100%', md: 240 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              label="Tipo"
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              sx={{ minWidth: { xs: '100%', md: 180 } }}
+            >
+              {TYPE_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        }
       >
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} md={4}>
@@ -154,22 +214,22 @@ function UltimasTransacciones({ refreshSignal }) {
           <Grid item xs={12} md={4}>
             <Stack justifyContent="center" sx={{ height: '100%' }}>
               <Typography variant="body2" color="text.secondary">
-                Total de registros: {transacciones.length}
+                Mostrando {filteredTransacciones.length} de {transacciones.length} movimientos
               </Typography>
             </Stack>
           </Grid>
         </Grid>
 
-        <TableContainer>
-          <Table>
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+          <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
+                <TableCell>Fecha</TableCell>
                 <TableCell>Tipo</TableCell>
                 <TableCell>Concepto</TableCell>
-                <TableCell>Fecha</TableCell>
-                <TableCell align="right">Monto</TableCell>
+                <TableCell>Cliente</TableCell>
                 <TableCell>Forma de pago</TableCell>
+                <TableCell align="right">Monto</TableCell>
                 <TableCell align="right">Acciones</TableCell>
               </TableRow>
             </TableHead>
@@ -185,18 +245,25 @@ function UltimasTransacciones({ refreshSignal }) {
                     </Stack>
                   </TableCell>
                 </TableRow>
-              ) : transacciones.length > 0 ? (
-                transacciones.map((tran) => (
+              ) : filteredTransacciones.length > 0 ? (
+                filteredTransacciones.map((tran) => (
                   <TableRow key={tran.id} hover>
-                    <TableCell>{tran.id}</TableCell>
+                    <TableCell>{String(tran.fecha).slice(0, 10)}</TableCell>
                     <TableCell sx={{ textTransform: 'capitalize', fontWeight: 800 }}>{tran.tipo}</TableCell>
                     <TableCell>{tran.concepto}</TableCell>
-                    <TableCell>{tran.fecha.slice(0, 10)}</TableCell>
-                    <TableCell align="right">
-                      {currencyFormatter.format(parseFloat(tran.monto))}
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {tran.cliente_nombre || 'General'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {tran.numero_recibo || 'Sin recibo'}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ textTransform: 'capitalize' }}>
                       {tran.forma_pago || 'No especificado'}
+                    </TableCell>
+                    <TableCell align="right">
+                      {currencyFormatter.format(parseFloat(tran.monto))}
                     </TableCell>
                     <TableCell align="right">
                       <Tooltip title="Editar transacción">
@@ -219,9 +286,9 @@ function UltimasTransacciones({ refreshSignal }) {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                    <Typography variant="body1">No hay transacciones en este rango.</Typography>
+                    <Typography variant="body1">No hay movimientos para este filtro.</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Ajusta las fechas o registra un nuevo movimiento arriba.
+                      Ajusta fechas, tipo o búsqueda.
                     </Typography>
                   </TableCell>
                 </TableRow>

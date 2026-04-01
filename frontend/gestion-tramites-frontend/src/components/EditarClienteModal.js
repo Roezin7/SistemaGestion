@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Grid, TextField
+  Button, Grid, MenuItem, TextField
 } from '@mui/material';
 import api from '../services/api';
+import { ESTADOS_TRAMITE } from '../utils/statusUtils';
 
 export default function EditarClienteModal({
   open,
@@ -63,6 +64,10 @@ export default function EditarClienteModal({
     .catch(console.error);
   };
 
+  const estadoOptions = formData.estadoTramite && !ESTADOS_TRAMITE.includes(formData.estadoTramite)
+    ? [formData.estadoTramite, ...ESTADOS_TRAMITE]
+    : ESTADOS_TRAMITE;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Editar Cliente</DialogTitle>
@@ -98,12 +103,19 @@ export default function EditarClienteModal({
           </Grid>
           <Grid item xs={6}>
             <TextField
+              select
               label="Estado de Trámite"
               name="estadoTramite"
               value={formData.estadoTramite}
               onChange={handleChange}
               fullWidth
-            />
+            >
+              {estadoOptions.map((estado) => (
+                <MenuItem key={estado} value={estado}>
+                  {estado}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={6}>
             <TextField
