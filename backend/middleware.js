@@ -1,8 +1,6 @@
 // backend/middleware.js
-const jwt = require('jsonwebtoken');
 const { obtenerPerfilUsuario } = require('./utils/oficinas');
-
-const SECRET_KEY = process.env.SECRET_KEY || 'clave_secreta';
+const { verifyAuthToken } = require('./utils/security');
 const ROLES_VALIDOS = ['admin', 'gerente', 'empleado'];
 
 function extraerToken(req) {
@@ -25,7 +23,7 @@ const verificarToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const decoded = verifyAuthToken(token);
     const user = await obtenerPerfilUsuario(decoded.id, decoded.oficina_id);
 
     if (!user) {

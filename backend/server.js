@@ -4,8 +4,14 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const {
+  aplicarHeadersSeguridad,
+  getSecretKey,
+} = require('./utils/security');
 
 const app = express();
+app.disable('x-powered-by');
+getSecretKey();
 
 function normalizeOrigin(origin) {
   return origin.replace(/\/+$/, '');
@@ -32,8 +38,6 @@ const allowedOrigins = new Set([
   ...configuredOrigins,
 ]);
 
-const defaultAllowedHostSuffixes = ['.onrender.com', '.vercel.app'];
-
 function isConfiguredPatternMatch(hostname, origin) {
   return configuredOriginPatterns.some((pattern) => {
     if (pattern.includes('://')) {
@@ -44,13 +48,44 @@ function isConfiguredPatternMatch(hostname, origin) {
   });
 }
 
-function isOriginAllowed(origin) {
+function normalizeRequestHost(requestHost) {
+  if (!requestHost) {
+    return null;
+  }
+
+  try {
+    return new URL(`http://${requestHost}`).host.toLowerCase();
+  } catch {
+    return String(requestHost).toLowerCase();
+  }
+}
+
+function resolveRequestOrigin(req) {
+  const host = normalizeRequestHost(req.headers.host);
+  if (!host) {
+    return '';
+  }
+
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol = typeof forwardedProto === 'string' && forwardedProto.trim()
+    ? forwardedProto.split(',')[0].trim()
+    : req.protocol || 'http';
+
+  return `${protocol}://${host}`;
+}
+
+function isOriginAllowed(origin, requestOrigin) {
   if (!origin) {
     return true;
   }
 
   const normalizedOrigin = normalizeOrigin(origin);
+  const normalizedRequestOrigin = normalizeOrigin(requestOrigin || '');
   if (allowedOrigins.has(normalizedOrigin)) {
+    return true;
+  }
+
+  if (normalizedRequestOrigin && normalizedOrigin === normalizedRequestOrigin) {
     return true;
   }
 
@@ -64,31 +99,35 @@ function isOriginAllowed(origin) {
       return true;
     }
 
-    return defaultAllowedHostSuffixes.some(
-      (suffix) => hostname === suffix.slice(1) || hostname.endsWith(suffix)
-    );
+    return false;
   } catch {
     return false;
   }
 }
 
-const corsOptions = {
-  origin(origin, callback) {
-    if (isOriginAllowed(origin)) {
-      return callback(null, true);
-    }
+function corsMiddleware(req, res, next) {
+  const requestOrigin = resolveRequestOrigin(req);
+  const corsOptions = {
+    origin(origin, callback) {
+      if (isOriginAllowed(origin, requestOrigin)) {
+        return callback(null, true);
+      }
 
-    return callback(new Error(`Origen no permitido por CORS: ${origin || 'sin-origin'}`));
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
-};
+      return callback(new Error(`Origen no permitido por CORS: ${origin || 'sin-origin'}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204,
+  };
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  return cors(corsOptions)(req, res, next);
+}
+
+app.use(aplicarHeadersSeguridad);
+app.use(corsMiddleware);
+app.options('*', corsMiddleware);
+app.use(express.json({ limit: '200kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // 🔹 Asegurarse de que la carpeta "uploads" exista
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -108,12 +147,33 @@ app.use('/api/kpis', kpisRoutes);
 app.use('/api/auth', authRoutes);
 
 app.use((err, req, res, next) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: 'La solicitud excede el tamaño permitido',
+    });
+  }
+
   if (err && err.message && err.message.startsWith('Origen no permitido por CORS')) {
     console.error(`${err.message} | Host: ${req.headers.host || 'sin-host'}`);
     return res.status(403).json({
       success: false,
       message: 'Origen no permitido por CORS',
       origin: req.headers.origin || null,
+    });
+  }
+
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({
+      success: false,
+      message: 'El archivo no cumple con la política de carga',
+    });
+  }
+
+  if (err && err.code === 'UPLOAD_VALIDATION_ERROR') {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
     });
   }
 

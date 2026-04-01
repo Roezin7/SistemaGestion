@@ -51,6 +51,8 @@ function LoginPage({ onLoginSuccess }) {
     } catch (err) {
       if (err.response?.status === 401) {
         setError('Usuario o contraseña incorrectos');
+      } else if (err.response?.status === 429) {
+        setError(err.response?.data?.message || 'Demasiados intentos. Intenta de nuevo en unos minutos.');
       } else {
         setError('No se pudo conectar con el servidor');
       }

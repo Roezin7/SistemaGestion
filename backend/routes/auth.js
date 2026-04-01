@@ -1,7 +1,6 @@
 // backend/routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
 const {
@@ -18,9 +17,39 @@ const {
   usuarioTieneAccesoAOficina,
 } = require('../utils/oficinas');
 const { verificarToken, verificarAdmin, extraerToken, esRolValido } = require('../middleware');
+const {
+  signAuthToken,
+  verifyAuthToken,
+  createRateLimiter,
+  validarPasswordSegura,
+} = require('../utils/security');
 
 const router = express.Router();
-const SECRET_KEY = process.env.SECRET_KEY || 'clave_secreta';
+const loginRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  keyPrefix: 'login',
+  message: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.',
+});
+const registerRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  keyPrefix: 'register',
+  message: 'Demasiados intentos de registro. Intenta de nuevo más tarde.',
+});
+const BCRYPT_SALT_ROUNDS = 12;
+
+function validarUsername(username) {
+  if (username.length < 4 || username.length > 50) {
+    return 'El usuario debe tener entre 4 y 50 caracteres';
+  }
+
+  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    return 'El usuario solo puede contener letras, números, punto, guion y guion bajo';
+  }
+
+  return null;
+}
 
 function normalizarTexto(valor) {
   return typeof valor === 'string' ? valor.trim() : '';
@@ -68,7 +97,7 @@ async function obtenerUsuarioDesdeToken(req) {
   }
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const decoded = verifyAuthToken(token);
     return obtenerPerfilUsuario(decoded.id, decoded.oficina_id);
   } catch {
     return null;
@@ -123,6 +152,10 @@ router.get('/oficinas', async (req, res) => {
     const usuario = await obtenerUsuarioDesdeToken(req);
 
     if (!usuario) {
+      const setupStatus = await db.query('SELECT COUNT(*)::int AS total FROM usuarios');
+      if ((setupStatus.rows[0]?.total || 0) > 0) {
+        return res.status(401).json({ success: false, message: 'Acceso denegado' });
+      }
       return res.json(oficinas);
     }
 
@@ -159,7 +192,7 @@ router.post('/switch-office', verificarToken, async (req, res) => {
 
     await actualizarOficinaActivaUsuario(req.user.id, oficinaId);
     const perfilActualizado = await obtenerPerfilUsuario(req.user.id, oficinaId);
-    const token = jwt.sign(construirPayloadToken(perfilActualizado), SECRET_KEY, { expiresIn: '8h' });
+    const token = signAuthToken(construirPayloadToken(perfilActualizado));
 
     res.json(construirRespuestaSesion(perfilActualizado, token));
   } catch (error) {
@@ -229,7 +262,7 @@ router.put('/oficinas/:id', verificarToken, verificarAdmin, async (req, res) => 
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerRateLimiter, async (req, res) => {
   const nombre = normalizarTexto(req.body.nombre);
   const username = normalizarTexto(req.body.username);
   const password = typeof req.body.password === 'string' ? req.body.password : '';
@@ -239,6 +272,16 @@ router.post('/register', async (req, res) => {
 
   if (!nombre || !username || !password) {
     return res.status(400).json({ success: false, message: 'Nombre, usuario y contraseña son obligatorios' });
+  }
+
+  const usernameError = validarUsername(username);
+  if (usernameError) {
+    return res.status(400).json({ success: false, message: usernameError });
+  }
+
+  const passwordError = validarPasswordSegura(password);
+  if (passwordError) {
+    return res.status(400).json({ success: false, message: passwordError });
   }
 
   if (rolSolicitado && !esRolValido(rolSolicitado)) {
@@ -282,7 +325,7 @@ router.post('/register', async (req, res) => {
       client
     );
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     const result = await client.query(
       `INSERT INTO usuarios (nombre, username, password, rol, oficina_id)
        VALUES ($1, $2, $3, $4, $5)
@@ -315,7 +358,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimiter, async (req, res) => {
   const username = normalizarTexto(req.body.username);
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   const oficinaId = req.body.oficinaId ? Number.parseInt(req.body.oficinaId, 10) : null;
@@ -326,14 +369,15 @@ router.post('/login', async (req, res) => {
       [username]
     );
 
+    const invalidCredentialsResponse = { success: false, message: 'Usuario o contraseña incorrectos' };
     if (result.rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'Usuario no encontrado' });
+      return res.status(401).json(invalidCredentialsResponse);
     }
 
     const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+      return res.status(401).json(invalidCredentialsResponse);
     }
 
     const perfil = await obtenerPerfilUsuario(user.id, oficinaId || user.oficina_id);
@@ -345,7 +389,7 @@ router.post('/login', async (req, res) => {
       await actualizarOficinaActivaUsuario(user.id, perfil.oficina_id);
     }
 
-    const token = jwt.sign(construirPayloadToken(perfil), SECRET_KEY, { expiresIn: '8h' });
+    const token = signAuthToken(construirPayloadToken(perfil));
     res.json(construirRespuestaSesion(perfil, token));
   } catch (error) {
     console.error(error);

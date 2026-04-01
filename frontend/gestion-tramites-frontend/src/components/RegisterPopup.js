@@ -151,6 +151,7 @@ const RegisterPopup = ({ open, onClose, onRegisterSuccess, showRoleSelector = fa
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            helperText="Mínimo 10 caracteres, con mayúsculas, minúsculas y números."
           />
 
           {showRoleSelector ? (

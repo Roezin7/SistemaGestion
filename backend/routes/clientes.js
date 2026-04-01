@@ -9,6 +9,17 @@ const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken, allowRoles } = require('../middleware');
 
+const UPLOADS_ROOT = path.resolve(path.join(__dirname, '../uploads'));
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const ALLOWED_UPLOAD_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx']);
+
 function normalizarTexto(valor) {
   return typeof valor === 'string' ? valor.trim() : '';
 }
@@ -27,11 +38,30 @@ function normalizarFechaOpcional(valor) {
 }
 
 function obtenerCarpetaOficina(oficinaId) {
-  const carpeta = path.join(__dirname, '../uploads', `oficina-${oficinaId}`);
+  const carpeta = path.join(UPLOADS_ROOT, `oficina-${oficinaId}`);
   if (!fs.existsSync(carpeta)) {
     fs.mkdirSync(carpeta, { recursive: true });
   }
   return carpeta;
+}
+
+function crearUploadValidationError(message) {
+  const error = new Error(message);
+  error.code = 'UPLOAD_VALIDATION_ERROR';
+  return error;
+}
+
+function archivoPermitido(file) {
+  const extension = path.extname(file.originalname || '').toLowerCase();
+  return ALLOWED_UPLOAD_MIME_TYPES.has(file.mimetype) && ALLOWED_UPLOAD_EXTENSIONS.has(extension);
+}
+
+function limpiarArchivosSubidos(files = []) {
+  files.forEach((file) => {
+    if (file?.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  });
 }
 
 const storage = multer.diskStorage({
@@ -44,7 +74,19 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: {
+    files: 5,
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter(req, file, cb) {
+    if (!archivoPermitido(file)) {
+      return cb(crearUploadValidationError('Solo se permiten archivos PDF, imagen o documentos Word de hasta 10 MB'));
+    }
+    return cb(null, true);
+  },
+});
 
 const clienteSelectSql = `
   SELECT
@@ -242,6 +284,10 @@ router.post(
   async (req, res) => {
     const { id } = req.params;
     try {
+      if (!Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ error: 'Debes adjuntar al menos un archivo válido' });
+      }
+
       for (const file of req.files) {
         await db.query(
           `INSERT INTO documentos_cliente (cliente_id, oficina_id, ruta_archivo, nombre_archivo)
@@ -253,6 +299,7 @@ router.post(
       await registrarHistorial(req, `Se subieron documentos para cliente id ${id}`);
       res.json({ message: 'Documentos subidos correctamente' });
     } catch (err) {
+      limpiarArchivosSubidos(req.files);
       console.error('Error al subir documentos:', err);
       res.status(500).json({ error: err.message });
     }
@@ -279,8 +326,15 @@ router.get('/documentos/:docId/archivo', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'El archivo ya no existe en el servidor' });
     }
 
+    const resolvedPath = path.resolve(documento.ruta_archivo);
+    if (!resolvedPath.startsWith(UPLOADS_ROOT + path.sep) && resolvedPath !== UPLOADS_ROOT) {
+      return res.status(403).json({ error: 'Ruta de archivo no permitida' });
+    }
+
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(documento.nombre_archivo)}"`);
-    return res.sendFile(path.resolve(documento.ruta_archivo));
+    return res.sendFile(resolvedPath);
   } catch (error) {
     console.error('Error al abrir documento:', error);
     return res.status(500).json({ error: 'Error al abrir el documento' });
@@ -289,7 +343,7 @@ router.get('/documentos/:docId/archivo', verificarToken, async (req, res) => {
 
 router.put('/documentos/:docId', verificarToken, async (req, res) => {
   const { docId } = req.params;
-  const nuevoNombre = normalizarTexto(req.body.nuevoNombre);
+  const nuevoNombre = path.basename(normalizarTexto(req.body.nuevoNombre));
 
   if (!nuevoNombre) {
     return res.status(400).json({ error: 'El nombre del documento es obligatorio' });
