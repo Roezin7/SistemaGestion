@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "migrate:sql": "node scripts/run-migration.js",
+    "migrate:prod-safe": "node scripts/run-migration.js migrations/20260331_production_safe.sql",
     "install-client": "cd ../frontend/gestion-tramites-frontend && npm install || echo 'Skipping frontend install...'",
     "build-client": "cd ../frontend/gestion-tramites-frontend && npm run build || echo 'Skipping frontend build...'",
     "postinstall": "npm run install-client && npm run build-client"

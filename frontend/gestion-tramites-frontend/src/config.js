@@ -11,7 +11,21 @@ function getDefaultApiUrl() {
     return 'http://localhost:5000';
   }
 
-  return window.location.origin;
+  const hostname = window.location.hostname;
+
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1'
+  ) {
+    return 'http://localhost:5000';
+  }
+
+  if (hostname.endsWith('onrender.com')) {
+    return window.location.origin;
+  }
+
+  // Compatibilidad con el despliegue previo del frontend separado del backend.
+  return 'https://sistemagestion-pk62.onrender.com';
 }
 
 export const API_URL = normalizeUrl(process.env.REACT_APP_API_URL || getDefaultApiUrl());

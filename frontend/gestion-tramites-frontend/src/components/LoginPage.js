@@ -27,6 +27,7 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
   }, []);
 
   const handleLogin = async () => {
+    setError('');
     try {
       const response = await api.post('/api/auth/login', { username, password });
       if (response.data.success) {
@@ -38,7 +39,11 @@ const LoginPage = ({ onLoginSuccess, onShowHistorial, onShowAdminPanel }) => {
         onLoginSuccess();
       }
     } catch (err) {
-      setError('Credenciales incorrectas');
+      if (err.response?.status === 401) {
+        setError('Usuario o contraseña incorrectos');
+      } else {
+        setError('No se pudo conectar con el servidor');
+      }
       console.error("Error en login:", err.response ? err.response.data : err);
     }
   };
