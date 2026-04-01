@@ -92,7 +92,14 @@ function App() {
   return (
     <Box sx={{ minHeight: '100vh' }}>
       <Container maxWidth="xl" sx={{ py: { xs: 2, md: 3 } }}>
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 2.5 }, mb: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 1.5, md: 2.5 },
+            mb: 3,
+            background: 'linear-gradient(180deg, rgba(36,93,156,0.05) 0%, rgba(255,255,255,0.98) 36%)',
+          }}
+        >
           <Stack
             direction={{ xs: 'column', xl: 'row' }}
             spacing={2.5}
@@ -106,7 +113,7 @@ function App() {
                     width: 52,
                     height: 52,
                     borderRadius: 3,
-                    backgroundColor: 'rgba(17, 24, 39, 0.04)',
+                    backgroundColor: 'rgba(36, 93, 156, 0.08)',
                     border: '1px solid',
                     borderColor: 'divider',
                     display: 'grid',
@@ -137,7 +144,15 @@ function App() {
                 </Box>
               </Stack>
 
-              <Tabs value={tabIndex} onChange={(_, newIndex) => setTabIndex(newIndex)} aria-label="tabs" variant="scrollable">
+              <Tabs
+                value={tabIndex}
+                onChange={(_, newIndex) => setTabIndex(newIndex)}
+                aria-label="tabs"
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{ width: '100%' }}
+              >
                 <Tab label="Dashboard" icon={<DashboardIcon />} iconPosition="start" {...a11yProps(0)} />
                 <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(1)} />
                 <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(2)} />
@@ -156,8 +171,9 @@ function App() {
                 sx={{
                   px: 1.75,
                   py: 1.25,
-                  minWidth: 220,
-                  backgroundColor: '#f8fafc',
+                  minWidth: { xs: '100%', sm: 220 },
+                  width: { xs: '100%', sm: 'auto' },
+                  backgroundColor: 'rgba(36, 93, 156, 0.05)',
                 }}
               >
                 <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -168,7 +184,7 @@ function App() {
                 </Typography>
               </Paper>
               {user?.rol === 'admin' ? <AdminBanner onSelectOption={handleAdminOption} /> : null}
-              <Button variant="outlined" onClick={handleLogout}>
+              <Button variant="outlined" onClick={handleLogout} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                 Cerrar sesión
               </Button>
             </Stack>

@@ -129,14 +129,14 @@ function UltimasTransacciones({ refreshSignal }) {
   return (
     <>
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={4}>
           <MetricCard
             label="Ingresos visibles"
             value={currencyFormatter.format(totalIngresos)}
             icon={<PaymentsOutlinedIcon />}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={6} lg={4}>
           <MetricCard
             label="Egresos visibles"
             value={currencyFormatter.format(totalEgresos)}
@@ -144,7 +144,7 @@ function UltimasTransacciones({ refreshSignal }) {
             tone="accent"
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={12} lg={4}>
           <MetricCard
             label="Balance del rango"
             value={currencyFormatter.format(balanceGeneral)}
@@ -220,7 +220,18 @@ function UltimasTransacciones({ refreshSignal }) {
           </Grid>
         </Grid>
 
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+        <TableContainer
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3,
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '& table': {
+              minWidth: { xs: 760, md: '100%' },
+            },
+          }}
+        >
           <Table size="small">
             <TableHead>
               <TableRow>

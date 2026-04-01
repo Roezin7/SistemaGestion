@@ -10,13 +10,13 @@ function PageHeader({ eyebrow, title, subtitle, actions }) {
       spacing={2}
       sx={{ mb: 3 }}
     >
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         {eyebrow && (
           <Typography
             variant="body2"
             sx={{
               letterSpacing: '0.08em',
-              color: 'text.secondary',
+              color: 'primary.main',
               fontWeight: 700,
               textTransform: 'uppercase',
             }}
@@ -28,12 +28,16 @@ function PageHeader({ eyebrow, title, subtitle, actions }) {
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 720 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, maxWidth: 720, pr: { xs: 0, md: 2 } }}>
             {subtitle}
           </Typography>
         )}
       </Box>
-      {actions ? <Box sx={{ width: { xs: '100%', md: 'auto' } }}>{actions}</Box> : null}
+      {actions ? (
+        <Box sx={{ width: { xs: '100%', md: 'auto' }, '& .MuiButton-root': { width: { xs: '100%', md: 'auto' } } }}>
+          {actions}
+        </Box>
+      ) : null}
     </Stack>
   );
 }

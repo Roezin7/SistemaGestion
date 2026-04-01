@@ -285,7 +285,18 @@ function Reportes() {
           Mostrando {filteredDatos.length} de {datos.length} movimientos.
         </Typography>
 
-        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+        <TableContainer
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3,
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '& table': {
+              minWidth: { xs: 720, md: '100%' },
+            },
+          }}
+        >
           <Table size="small">
             <TableHead>
               <TableRow>

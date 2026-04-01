@@ -4,6 +4,8 @@ export const ESTADOS_TRAMITE = [
   'Programación de cita',
   'Proceso consular',
   'Seguimiento',
+  'Aprobada',
+  'Negada',
   'Concluido',
 ];
 
@@ -35,6 +37,9 @@ export function getStatusCategory(label) {
   }
 
   if (
+    text.includes('aprob') ||
+    text.includes('negad') ||
+    text.includes('deneg') ||
     text.includes('conclu') ||
     text.includes('finaliz') ||
     text.includes('complet') ||

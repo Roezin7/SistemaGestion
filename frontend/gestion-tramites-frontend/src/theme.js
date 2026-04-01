@@ -1,13 +1,13 @@
 // src/theme.js
 import { alpha, createTheme } from '@mui/material/styles';
 
-const primaryMain = '#111827';
-const primaryDark = '#0b1220';
+const primaryMain = '#245d9c';
+const primaryDark = '#183d6b';
 const accentMain = '#0f766e';
 const surfaceMain = '#ffffff';
 const inkMain = '#101828';
 const mutedInk = '#475467';
-const lineColor = alpha('#0f172a', 0.08);
+const lineColor = alpha(primaryMain, 0.12);
 
 const theme = createTheme({
   palette: {
@@ -15,13 +15,13 @@ const theme = createTheme({
     primary: {
       main: primaryMain,
       dark: primaryDark,
-      light: '#344054',
+      light: '#5f8ec2',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#344054',
-      dark: '#1d2939',
-      light: '#98a2b3',
+      main: '#274260',
+      dark: '#17293d',
+      light: '#6b7f96',
       contrastText: '#ffffff',
     },
     success: {
@@ -34,7 +34,7 @@ const theme = createTheme({
       main: '#b54708',
     },
     background: {
-      default: '#f4f6f9',
+      default: '#f2f6fb',
       paper: surfaceMain,
     },
     text: {
@@ -52,15 +52,24 @@ const theme = createTheme({
       fontSize: '2rem',
       fontWeight: 800,
       letterSpacing: '-0.03em',
+      '@media (max-width:600px)': {
+        fontSize: '1.65rem',
+      },
     },
     h4: {
       fontSize: '1.5rem',
       fontWeight: 800,
       letterSpacing: '-0.025em',
+      '@media (max-width:600px)': {
+        fontSize: '1.28rem',
+      },
     },
     h5: {
       fontSize: '1.1rem',
       fontWeight: 800,
+      '@media (max-width:600px)': {
+        fontSize: '1rem',
+      },
     },
     h6: {
       fontSize: '1rem',
@@ -84,7 +93,8 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background: 'linear-gradient(180deg, #f8fafc 0%, #f3f5f8 100%)',
+          background:
+            'linear-gradient(180deg, rgba(36,93,156,0.07) 0%, rgba(248,250,252,0.92) 16%, #f2f6fb 100%)',
           minHeight: '100vh',
         },
       },
@@ -104,7 +114,7 @@ const theme = createTheme({
           borderRadius: 18,
           backgroundImage: 'none',
           border: `1px solid ${lineColor}`,
-          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
+          boxShadow: '0 10px 24px rgba(24, 61, 107, 0.06)',
         },
       },
     },
@@ -112,7 +122,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 18,
-          boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
+          boxShadow: '0 10px 24px rgba(24, 61, 107, 0.06)',
           border: `1px solid ${lineColor}`,
         },
       },
@@ -125,9 +135,12 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           padding: '9px 16px',
+          '@media (max-width:600px)': {
+            minHeight: 42,
+          },
         },
         containedPrimary: {
-          background: primaryMain,
+          background: `linear-gradient(180deg, ${primaryMain} 0%, ${primaryDark} 100%)`,
           '&:hover': {
             background: primaryDark,
           },
@@ -143,7 +156,7 @@ const theme = createTheme({
           minHeight: 44,
         },
         indicator: {
-          height: 2,
+          height: 3,
           borderRadius: 999,
           background: primaryMain,
         },
@@ -158,6 +171,11 @@ const theme = createTheme({
           marginRight: 20,
           fontWeight: 700,
           color: mutedInk,
+          '@media (max-width:600px)': {
+            marginRight: 12,
+            padding: '8px 6px 12px',
+            fontSize: '0.82rem',
+          },
           '&.Mui-selected': {
             color: primaryMain,
           },
@@ -200,12 +218,19 @@ const theme = createTheme({
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           color: mutedInk,
-          background: '#f8fafc',
+          background: alpha(primaryMain, 0.06),
           borderBottom: `1px solid ${lineColor}`,
+          '@media (max-width:600px)': {
+            fontSize: '0.68rem',
+            padding: '10px 12px',
+          },
         },
         body: {
           borderBottom: `1px solid ${lineColor}`,
           verticalAlign: 'middle',
+          '@media (max-width:600px)': {
+            padding: '12px',
+          },
         },
       },
     },
@@ -213,7 +238,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&:hover td': {
-            backgroundColor: alpha(primaryMain, 0.018),
+            backgroundColor: alpha(primaryMain, 0.03),
           },
         },
       },
@@ -234,6 +259,15 @@ const theme = createTheme({
         },
       },
     },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderLeft: `1px solid ${lineColor}`,
+          backgroundImage: 'none',
+          boxShadow: '-12px 0 32px rgba(24, 61, 107, 0.10)',
+        },
+      },
+    },
     MuiDialogTitle: {
       styleOverrides: {
         root: {
@@ -248,6 +282,9 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           padding: '8px 24px 0',
+          '@media (max-width:600px)': {
+            padding: '8px 16px 0',
+          },
         },
       },
     },
@@ -255,6 +292,9 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           padding: '16px 24px 24px',
+          '@media (max-width:600px)': {
+            padding: '16px 16px 20px',
+          },
         },
       },
     },

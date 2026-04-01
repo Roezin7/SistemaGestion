@@ -11,11 +11,19 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 function EntryPanelDrawer({ open, onClose, title, subtitle, children }) {
   return (
-    <Drawer anchor="right" open={open} onClose={onClose}>
-      <Box
-        sx={{
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
           width: { xs: '100vw', sm: 460, md: 520 },
           maxWidth: '100vw',
+        },
+      }}
+    >
+      <Box
+        sx={{
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -27,7 +35,7 @@ function EntryPanelDrawer({ open, onClose, title, subtitle, children }) {
           justifyContent="space-between"
           alignItems="flex-start"
           spacing={2}
-          sx={{ px: 3, py: 2.5 }}
+          sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 2.5 } }}
         >
           <Box>
             <Typography variant="h5">{title}</Typography>
@@ -44,7 +52,7 @@ function EntryPanelDrawer({ open, onClose, title, subtitle, children }) {
 
         <Divider />
 
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, md: 3 }, pb: 'max(env(safe-area-inset-bottom), 24px)' }}>
           {children}
         </Box>
       </Box>

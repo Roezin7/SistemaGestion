@@ -19,7 +19,7 @@ function SectionCard({ title, subtitle, actions, children, contentSx, ...props }
           spacing={1.5}
           sx={{ mb: 2.5 }}
         >
-          <Box>
+          <Box sx={{ minWidth: 0 }}>
             {title && <Typography variant="h6">{title}</Typography>}
             {subtitle && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -27,7 +27,11 @@ function SectionCard({ title, subtitle, actions, children, contentSx, ...props }
               </Typography>
             )}
           </Box>
-          {actions ? <Box sx={{ width: { xs: '100%', lg: 'auto' } }}>{actions}</Box> : null}
+          {actions ? (
+            <Box sx={{ width: { xs: '100%', lg: 'auto' }, '& .MuiButton-root': { width: { xs: '100%', md: 'auto' } } }}>
+              {actions}
+            </Box>
+          ) : null}
         </Stack>
       )}
       <Box sx={contentSx}>{children}</Box>

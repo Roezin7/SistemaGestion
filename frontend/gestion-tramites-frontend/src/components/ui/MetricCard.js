@@ -5,7 +5,7 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
   const toneStyles = {
     primary: {
       color: 'primary.main',
-      backgroundColor: 'rgba(17, 24, 39, 0.04)',
+      backgroundColor: 'rgba(36, 93, 156, 0.10)',
     },
     accent: {
       color: 'warning.main',
@@ -21,8 +21,8 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
     <Paper
       elevation={0}
       sx={{
-        p: 2.5,
-        minHeight: 136,
+        p: { xs: 2, md: 2.5 },
+        minHeight: { xs: 122, md: 136 },
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
@@ -38,11 +38,11 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
           >
             {label}
           </Typography>
-          <Typography variant="h4" sx={{ mt: 1.25 }}>
+          <Typography variant="h4" sx={{ mt: 1, pr: 1 }}>
             {value}
           </Typography>
           {helper && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
               {helper}
             </Typography>
           )}
@@ -50,8 +50,8 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
         {icon && (
           <Box
             sx={{
-              width: 42,
-              height: 42,
+              width: { xs: 38, md: 42 },
+              height: { xs: 38, md: 42 },
               borderRadius: 3,
               display: 'grid',
               placeItems: 'center',
