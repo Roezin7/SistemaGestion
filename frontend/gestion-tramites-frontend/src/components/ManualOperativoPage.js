@@ -9,9 +9,10 @@ import {
   Typography,
 } from '@mui/material';
 import { Lock, MenuBook } from '@mui/icons-material';
-import { getDocument } from 'pdfjs-dist/build/pdf';
-import 'pdfjs-dist/build/pdf.worker.entry';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import api from '../services/api';
+
+GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.mjs`;
 
 function buildWatermark(user) {
   const username = user?.username || 'usuario';
