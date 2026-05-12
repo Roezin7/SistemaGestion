@@ -140,11 +140,13 @@ const clientesRoutes = require('./routes/clientes');
 const finanzasRoutes = require('./routes/finanzas');
 const kpisRoutes = require('./routes/kpis');
 const authRoutes = require('./routes/auth');
+const manualRoutes = require('./routes/manual');
 
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/finanzas', finanzasRoutes);
 app.use('/api/kpis', kpisRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/manual', manualRoutes);
 
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large') {

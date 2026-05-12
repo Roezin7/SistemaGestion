@@ -18,11 +18,13 @@ import {
   Assessment,
   AttachMoney,
   Dashboard as DashboardIcon,
+  MenuBook,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
 import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
+import ManualOperativoPage from './components/ManualOperativoPage';
 import LoginPage from './components/LoginPage';
 import AdminBanner from './components/AdminBanner';
 import HistorialModal from './components/HistorialModal';
@@ -219,6 +221,7 @@ function App() {
                 <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(1)} />
                 <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(2)} />
                 <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(3)} />
+                <Tab label="Manual" icon={<MenuBook />} iconPosition="start" {...a11yProps(4)} />
               </Tabs>
             </Stack>
 
@@ -291,6 +294,9 @@ function App() {
           </TabPanel>
           <TabPanel value={tabIndex} index={3}>
             <ReportesPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={4}>
+            <ManualOperativoPage user={user} />
           </TabPanel>
         </Box>
 
