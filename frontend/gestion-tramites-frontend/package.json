@@ -8,6 +8,7 @@
     "@mui/icons-material": "^6.4.4",
     "@mui/material": "^6.4.4",
     "axios": "^1.7.9",
+    "canvg": "^3.0.11",
     "chart.js": "^4.4.7",
     "cra-template": "1.2.0",
     "file-saver": "^2.0.5",
