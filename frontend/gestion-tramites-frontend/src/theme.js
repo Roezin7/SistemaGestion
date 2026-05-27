@@ -7,7 +7,7 @@ const accentMain = '#0f766e';
 const surfaceMain = '#ffffff';
 const inkMain = '#101828';
 const mutedInk = '#475467';
-const lineColor = alpha(primaryMain, 0.12);
+const lineColor = alpha('#101828', 0.10);
 
 const theme = createTheme({
   palette: {
@@ -34,7 +34,7 @@ const theme = createTheme({
       main: '#b54708',
     },
     background: {
-      default: '#f2f6fb',
+      default: '#f5f7fb',
       paper: surfaceMain,
     },
     text: {
@@ -51,7 +51,7 @@ const theme = createTheme({
     h3: {
       fontSize: '2rem',
       fontWeight: 800,
-      letterSpacing: '-0.03em',
+      letterSpacing: 0,
       '@media (max-width:600px)': {
         fontSize: '1.65rem',
       },
@@ -59,7 +59,7 @@ const theme = createTheme({
     h4: {
       fontSize: '1.5rem',
       fontWeight: 800,
-      letterSpacing: '-0.025em',
+      letterSpacing: 0,
       '@media (max-width:600px)': {
         fontSize: '1.28rem',
       },
@@ -85,7 +85,7 @@ const theme = createTheme({
     },
     button: {
       fontWeight: 700,
-      letterSpacing: '-0.01em',
+      letterSpacing: 0,
       textTransform: 'none',
     },
   },
@@ -94,7 +94,7 @@ const theme = createTheme({
       styleOverrides: {
         body: {
           background:
-            'linear-gradient(180deg, rgba(36,93,156,0.07) 0%, rgba(248,250,252,0.92) 16%, #f2f6fb 100%)',
+            'linear-gradient(180deg, rgba(36,93,156,0.06) 0%, rgba(248,250,252,0.96) 18%, #f5f7fb 100%)',
           minHeight: '100vh',
         },
       },
@@ -111,7 +111,7 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 18,
+          borderRadius: 10,
           backgroundImage: 'none',
           border: `1px solid ${lineColor}`,
           boxShadow: '0 10px 24px rgba(24, 61, 107, 0.06)',
@@ -121,7 +121,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 18,
+          borderRadius: 10,
           boxShadow: '0 10px 24px rgba(24, 61, 107, 0.06)',
           border: `1px solid ${lineColor}`,
         },
@@ -133,7 +133,7 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           padding: '9px 16px',
           '@media (max-width:600px)': {
             minHeight: 42,
@@ -196,7 +196,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: surfaceMain,
-          borderRadius: 12,
+          borderRadius: 8,
           '& fieldset': {
             borderColor: lineColor,
           },

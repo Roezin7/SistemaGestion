@@ -6,6 +6,7 @@ jest.mock('./components/Dashboard', () => () => <div>Dashboard</div>);
 jest.mock('./components/ClientesPage', () => () => <div>Clientes</div>);
 jest.mock('./components/FinanzasPage', () => () => <div>Finanzas</div>);
 jest.mock('./components/ReportesPage', () => () => <div>Reportes</div>);
+jest.mock('./components/ManualOperativoPage', () => () => <div>Manual</div>);
 jest.mock('./components/AdminBanner', () => () => <div>Admin Banner</div>);
 jest.mock('./components/HistorialModal', () => () => null);
 jest.mock('./components/AdminUsuariosModal', () => () => null);

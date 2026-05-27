@@ -1,28 +1,37 @@
-// src/components/EditarTransaccionModal.js
-
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, Box, Typography, TextField,
-  Button, MenuItem, FormControl, InputLabel, Select
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
 } from '@mui/material';
 import api from '../services/api';
 
-const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 400,
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4,
-};
+const TIPO_OPTIONS = [
+  { value: 'ingreso', label: 'Ingreso' },
+  { value: 'egreso', label: 'Egreso' },
+  { value: 'abono', label: 'Abono' },
+  { value: 'documento', label: 'Documento' },
+];
+
+const FORMA_PAGO_OPTIONS = [
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'transferencia', label: 'Transferencia' },
+];
 
 export default function EditarTransaccionModal({
   open,
   onClose = () => {},
-  transaccion,                // { id, tipo, concepto, fecha, monto, client_id, forma_pago }
-  onTransaccionUpdated = () => {}
+  transaccion,
+  onTransaccionUpdated = () => {},
 }) {
   const [datos, setDatos] = useState({
     tipo: '',
@@ -33,28 +42,41 @@ export default function EditarTransaccionModal({
     forma_pago: ''
   });
   const [clientes, setClientes] = useState([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  // Cargar datos de la transacción al abrir
   useEffect(() => {
-    if (!open || !transaccion) return;
+    if (!open || !transaccion) {
+      return;
+    }
+
     setDatos({
-      tipo: transaccion.tipo,
-      concepto: transaccion.concepto,
-      fecha: transaccion.fecha.slice(0,10),
-      monto: transaccion.monto.toString(),
+      tipo: transaccion.tipo || '',
+      concepto: transaccion.concepto || '',
+      fecha: transaccion.fecha ? String(transaccion.fecha).slice(0, 10) : '',
+      monto: transaccion.monto ? String(transaccion.monto) : '',
       client_id: transaccion.client_id || '',
-      forma_pago: transaccion.forma_pago
+      forma_pago: transaccion.forma_pago || 'efectivo',
     });
+    setError('');
   }, [open, transaccion]);
 
-  // Cargar lista de clientes para el selector
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
+
+    setLoadingClientes(true);
     api.get('/api/clientes')
-    .then(res => {
-      setClientes(res.data);
-    })
-    .catch(console.error);
+      .then((res) => {
+        setClientes(res.data);
+      })
+      .catch((requestError) => {
+        console.error('Error al cargar clientes:', requestError);
+        setError('No se pudo cargar la lista de clientes.');
+      })
+      .finally(() => setLoadingClientes(false));
   }, [open]);
 
   const handleChange = (e) => {
@@ -62,99 +84,125 @@ export default function EditarTransaccionModal({
     setDatos(d => ({ ...d, [name]: value }));
   };
 
-  const handleSave = () => {
-    api.put(
-      `/api/finanzas/${transaccion.id}`,
-      datos
-    )
-    .then(res => {
-      onTransaccionUpdated(res.data);
+  const handleSave = async () => {
+    setError('');
+
+    if (!datos.tipo || !datos.concepto.trim() || !datos.fecha || Number(datos.monto) <= 0) {
+      setError('Tipo, concepto, fecha y un monto mayor a cero son obligatorios.');
+      return;
+    }
+
+    if ((datos.tipo === 'abono' || datos.tipo === 'documento') && !datos.client_id) {
+      setError('Selecciona un cliente para abonos o documentos.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await api.put(`/api/finanzas/${transaccion.id}`, {
+        ...datos,
+        concepto: datos.concepto.trim(),
+      });
+      onTransaccionUpdated(response.data);
       onClose();
-    })
-    .catch(err => {
-      console.error('Error al actualizar la transacción:', err);
-      alert('No se pudo actualizar. Revisa la consola.');
-    });
+    } catch (requestError) {
+      console.error('Error al actualizar la transacción:', requestError);
+      setError(requestError.response?.data?.error || 'No se pudo actualizar la transacción.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={modalStyle}>
-        <Typography variant="h6" mb={2}>Editar Transacción</Typography>
+    <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Editar transacción</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          {error ? <Alert severity="error">{error}</Alert> : null}
 
-        <FormControl fullWidth margin="dense">
-          <InputLabel>Tipo</InputLabel>
-          <Select
-            name="tipo"
-            value={datos.tipo}
-            label="Tipo"
+          <FormControl fullWidth>
+            <InputLabel>Tipo</InputLabel>
+            <Select
+              name="tipo"
+              value={datos.tipo}
+              label="Tipo"
+              onChange={handleChange}
+            >
+              {TIPO_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Concepto"
+            name="concepto"
+            value={datos.concepto}
             onChange={handleChange}
-          >
-            <MenuItem value="ingreso">Ingreso</MenuItem>
-            <MenuItem value="egreso">Egreso</MenuItem>
-            <MenuItem value="abono">Abono</MenuItem>
-            <MenuItem value="documento">Documento</MenuItem>
-          </Select>
-        </FormControl>
+          />
 
-        <TextField
-          fullWidth margin="dense" label="Concepto"
-          name="concepto" value={datos.concepto}
-          onChange={handleChange}
-        />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              fullWidth
+              label="Fecha"
+              type="date"
+              name="fecha"
+              value={datos.fecha}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              fullWidth
+              label="Monto"
+              type="number"
+              name="monto"
+              value={datos.monto}
+              onChange={handleChange}
+              inputProps={{ min: 0, step: '0.01' }}
+            />
+          </Stack>
 
-        <TextField
-          fullWidth margin="dense" label="Fecha"
-          type="date" name="fecha"
-          value={datos.fecha} onChange={handleChange}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        <TextField
-          fullWidth margin="dense" label="Monto"
-          type="number" name="monto"
-          value={datos.monto} onChange={handleChange}
-        />
-
-        <FormControl fullWidth margin="dense">
-          <InputLabel>Cliente</InputLabel>
-          <Select
-            name="client_id"
-            value={datos.client_id}
-            label="Cliente"
-            onChange={handleChange}
-          >
-            <MenuItem value="">
-              <em>Sin cliente</em>
-            </MenuItem>
-            {clientes.map(c => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.nombre} ({c.numero_recibo})
+          <FormControl fullWidth disabled={loadingClientes}>
+            <InputLabel>Cliente</InputLabel>
+            <Select
+              name="client_id"
+              value={datos.client_id}
+              label="Cliente"
+              onChange={handleChange}
+            >
+              <MenuItem value="">
+                <em>Sin cliente</em>
               </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+              {clientes.map((cliente) => (
+                <MenuItem key={cliente.id} value={cliente.id}>
+                  {cliente.nombre} ({cliente.numero_recibo || 'sin recibo'})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl fullWidth margin="dense">
-          <InputLabel>Forma de Pago</InputLabel>
-          <Select
-            name="forma_pago"
-            value={datos.forma_pago}
-            label="Forma de Pago"
-            onChange={handleChange}
-          >
-            <MenuItem value="efectivo">Efectivo</MenuItem>
-            <MenuItem value="transferencia">Transferencia</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Box mt={2} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <Button onClick={onClose}>Cancelar</Button>
-          <Button variant="contained" onClick={handleSave}>
-            Guardar
-          </Button>
-        </Box>
-      </Box>
-    </Modal>
+          <FormControl fullWidth>
+            <InputLabel>Forma de pago</InputLabel>
+            <Select
+              name="forma_pago"
+              value={datos.forma_pago}
+              label="Forma de pago"
+              onChange={handleChange}
+            >
+              {FORMA_PAGO_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={saving}>Cancelar</Button>
+        <Button variant="contained" onClick={handleSave} disabled={saving}>
+          {saving ? 'Guardando...' : 'Guardar'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

@@ -23,10 +23,11 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
       sx={{
         p: { xs: 2, md: 2.5 },
         minHeight: { xs: 122, md: 136 },
+        height: '100%',
       }}
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-        <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ height: '100%' }}>
+        <Box sx={{ minWidth: 0 }}>
           <Typography
             variant="caption"
             sx={{
@@ -38,7 +39,16 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
           >
             {label}
           </Typography>
-          <Typography variant="h4" sx={{ mt: 1, pr: 1 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              mt: 1,
+              pr: 1,
+              overflowWrap: 'anywhere',
+              fontSize: { xs: '1.2rem', sm: '1.35rem', md: '1.45rem' },
+              lineHeight: 1.15,
+            }}
+          >
             {value}
           </Typography>
           {helper && (
@@ -59,6 +69,7 @@ function MetricCard({ label, value, helper, icon, tone = 'primary' }) {
               borderColor: 'divider',
               color: toneStyles[tone]?.color || toneStyles.primary.color,
               backgroundColor: toneStyles[tone]?.backgroundColor || toneStyles.primary.backgroundColor,
+              flexShrink: 0,
             }}
           >
             {icon}
