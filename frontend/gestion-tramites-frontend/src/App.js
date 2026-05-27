@@ -19,9 +19,11 @@ import {
   AttachMoney,
   Dashboard as DashboardIcon,
   MenuBook,
+  PersonSearch,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
+import ProspectosPage from './components/ProspectosPage';
 import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
 import ManualOperativoPage from './components/ManualOperativoPage';
@@ -218,10 +220,11 @@ function App() {
                 sx={{ width: '100%' }}
               >
                 <Tab label="Dashboard" icon={<DashboardIcon />} iconPosition="start" {...a11yProps(0)} />
-                <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(1)} />
-                <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(2)} />
-                <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(3)} />
-                <Tab label="Manual" icon={<MenuBook />} iconPosition="start" {...a11yProps(4)} />
+                <Tab label="Prospectos" icon={<PersonSearch />} iconPosition="start" {...a11yProps(1)} />
+                <Tab label="Clientes" icon={<AccountCircle />} iconPosition="start" {...a11yProps(2)} />
+                <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(3)} />
+                <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(4)} />
+                <Tab label="Manual" icon={<MenuBook />} iconPosition="start" {...a11yProps(5)} />
               </Tabs>
             </Stack>
 
@@ -287,15 +290,18 @@ function App() {
             <Dashboard />
           </TabPanel>
           <TabPanel value={tabIndex} index={1}>
-            <ClientesPage />
+            <ProspectosPage />
           </TabPanel>
           <TabPanel value={tabIndex} index={2}>
-            <FinanzasPage />
+            <ClientesPage />
           </TabPanel>
           <TabPanel value={tabIndex} index={3}>
-            <ReportesPage />
+            <FinanzasPage />
           </TabPanel>
           <TabPanel value={tabIndex} index={4}>
+            <ReportesPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={5}>
             <ManualOperativoPage user={user} />
           </TabPanel>
         </Box>

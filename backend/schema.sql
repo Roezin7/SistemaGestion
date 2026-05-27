@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, usuario_oficinas, usuarios, clientes, oficinas CASCADE;
+DROP TABLE IF EXISTS historial_cambios, retiros_socios, finanzas, documentos_cliente, prospectos, usuario_oficinas, usuarios, clientes, oficinas CASCADE;
 
 CREATE TABLE oficinas (
     id SERIAL PRIMARY KEY,
@@ -57,6 +57,25 @@ CREATE TABLE documentos_cliente (
     fecha_subida TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE prospectos (
+    id SERIAL PRIMARY KEY,
+    oficina_id INT NOT NULL REFERENCES oficinas(id),
+    nombre VARCHAR(255) NOT NULL,
+    telefono VARCHAR(50) NOT NULL,
+    email VARCHAR(120),
+    interes VARCHAR(160),
+    origen VARCHAR(100),
+    estado VARCHAR(40) NOT NULL DEFAULT 'nuevo',
+    prioridad VARCHAR(20) NOT NULL DEFAULT 'media',
+    fecha_ultimo_contacto DATE,
+    fecha_proximo_seguimiento DATE,
+    notas TEXT,
+    fecha_creacion TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT prospectos_estado_check CHECK (estado IN ('nuevo', 'contactado', 'interesado', 'seguimiento', 'no_responde', 'descartado', 'convertido')),
+    CONSTRAINT prospectos_prioridad_check CHECK (prioridad IN ('alta', 'media', 'baja'))
+);
+
 CREATE TABLE finanzas (
     id SERIAL PRIMARY KEY,
     oficina_id INT NOT NULL REFERENCES oficinas(id),
@@ -82,6 +101,9 @@ CREATE INDEX idx_usuario_oficinas_oficina_id ON usuario_oficinas (oficina_id);
 CREATE INDEX idx_historial_cambios_oficina_id_fecha ON historial_cambios (oficina_id, fecha DESC);
 CREATE INDEX idx_clientes_oficina_id ON clientes (oficina_id);
 CREATE INDEX idx_documentos_cliente_oficina_id_cliente_id ON documentos_cliente (oficina_id, cliente_id);
+CREATE INDEX idx_prospectos_oficina_id_estado ON prospectos (oficina_id, estado);
+CREATE INDEX idx_prospectos_oficina_id_prioridad ON prospectos (oficina_id, prioridad);
+CREATE INDEX idx_prospectos_oficina_id_seguimiento ON prospectos (oficina_id, fecha_proximo_seguimiento);
 CREATE INDEX idx_finanzas_oficina_id_fecha ON finanzas (oficina_id, fecha);
 CREATE INDEX idx_finanzas_oficina_id_client_id ON finanzas (oficina_id, client_id);
 CREATE INDEX idx_retiros_socios_oficina_id_fecha ON retiros_socios (oficina_id, fecha);

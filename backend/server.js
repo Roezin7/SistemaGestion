@@ -141,8 +141,10 @@ const finanzasRoutes = require('./routes/finanzas');
 const kpisRoutes = require('./routes/kpis');
 const authRoutes = require('./routes/auth');
 const manualRoutes = require('./routes/manual');
+const prospectosRoutes = require('./routes/prospectos');
 
 app.use('/api/clientes', clientesRoutes);
+app.use('/api/prospectos', prospectosRoutes);
 app.use('/api/finanzas', finanzasRoutes);
 app.use('/api/kpis', kpisRoutes);
 app.use('/api/auth', authRoutes);

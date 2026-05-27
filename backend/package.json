@@ -8,6 +8,7 @@
     "migrate:prod-safe": "node scripts/run-migration.js migrations/20260331_production_safe.sql",
     "migrate:multi-office": "node scripts/run-migration.js migrations/20260331_multi_office_scope.sql",
     "migrate:office-access": "node scripts/run-migration.js migrations/20260331_user_multi_office_access.sql",
+    "migrate:prospectos": "node scripts/run-migration.js migrations/20260527_prospectos.sql",
     "install-client": "cd ../frontend/gestion-tramites-frontend && npm install",
     "build-client": "cd ../frontend/gestion-tramites-frontend && npm run build",
     "postinstall": "npm run install-client && npm run build-client"

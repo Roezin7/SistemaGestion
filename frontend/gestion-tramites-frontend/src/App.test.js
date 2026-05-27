@@ -3,6 +3,7 @@ import React from 'react';
 
 jest.mock('./components/LoginPage', () => () => <div>Iniciar Sesión</div>);
 jest.mock('./components/Dashboard', () => () => <div>Dashboard</div>);
+jest.mock('./components/ProspectosPage', () => () => <div>Prospectos</div>);
 jest.mock('./components/ClientesPage', () => () => <div>Clientes</div>);
 jest.mock('./components/FinanzasPage', () => () => <div>Finanzas</div>);
 jest.mock('./components/ReportesPage', () => () => <div>Reportes</div>);
