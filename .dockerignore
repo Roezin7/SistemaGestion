@@ -1,0 +1,9 @@
+**/node_modules
+**/.git
+**/.DS_Store
+**/npm-debug.log*
+backend/.env
+backend/.env.*
+frontend/gestion-tramites-frontend/build
+*.psql
+*.dump
