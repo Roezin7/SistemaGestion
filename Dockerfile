@@ -1,28 +1,34 @@
-# Imagen única: el backend Express compila y sirve el frontend React.
-# Replica el flujo de Render (postinstall -> install-client -> build-client).
-FROM node:20-bookworm-slim
+# ---------- Etapa 1: build ----------
+# Compila el frontend React (necesita devDependencies) y deja listo el backend.
+FROM node:20-bookworm-slim AS build
 
 # CRA/react-scripts 5 requiere el provider legacy de OpenSSL en Node >=17
 ENV NODE_OPTIONS=--openssl-legacy-provider
-# Margen de memoria para el build de CRA
 ENV GENERATE_SOURCEMAP=false
-# IMPORTANTE: NO fijar NODE_ENV=production aquí. El build de CRA necesita las
-# devDependencies del frontend; con NODE_ENV=production npm las omite y falla
-# (Cannot find module '@babel/plugin-proposal-private-property-in-object').
+# OJO: no fijar NODE_ENV=production aquí; el build de CRA necesita las devDependencies.
 
 WORKDIR /app
 
-# Copiamos todo el monorepo (el postinstall del backend necesita el código del frontend para compilarlo)
+# Copiamos todo el monorepo (el postinstall del backend compila el frontend).
 COPY . .
 
-# Instala dependencias del backend; su "postinstall" instala y compila el frontend.
-# Usamos npm install (no ci) para que se ejecuten los postinstall scripts y se incluyan
-# las devDependencies del frontend necesarias para el build.
+# Instala deps del backend; su "postinstall" instala y compila el frontend.
 WORKDIR /app/backend
 RUN npm install --no-audit --no-fund
 
-# A partir de aquí (runtime) sí activamos producción: exige SECRET_KEY y habilita HSTS.
+# ---------- Etapa 2: runtime ----------
+# Imagen final ligera: solo backend (deps de producción) + la carpeta build/ del frontend.
+FROM node:20-bookworm-slim
+
 ENV NODE_ENV=production
+WORKDIR /app
+
+# Backend completo, incluyendo su node_modules (el backend no tiene devDependencies).
+COPY --from=build /app/backend /app/backend
+# Solo el resultado compilado del frontend (NO su node_modules, que es enorme).
+COPY --from=build /app/frontend/gestion-tramites-frontend/build /app/frontend/gestion-tramites-frontend/build
+
+WORKDIR /app/backend
 
 # La app escucha en process.env.PORT (default 5000). Coolify inyecta PORT.
 EXPOSE 5000
