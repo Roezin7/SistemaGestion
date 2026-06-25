@@ -2,11 +2,13 @@
 # Replica el flujo de Render (postinstall -> install-client -> build-client).
 FROM node:20-bookworm-slim
 
-ENV NODE_ENV=production
 # CRA/react-scripts 5 requiere el provider legacy de OpenSSL en Node >=17
 ENV NODE_OPTIONS=--openssl-legacy-provider
 # Margen de memoria para el build de CRA
 ENV GENERATE_SOURCEMAP=false
+# IMPORTANTE: NO fijar NODE_ENV=production aquí. El build de CRA necesita las
+# devDependencies del frontend; con NODE_ENV=production npm las omite y falla
+# (Cannot find module '@babel/plugin-proposal-private-property-in-object').
 
 WORKDIR /app
 
@@ -18,6 +20,9 @@ COPY . .
 # las devDependencies del frontend necesarias para el build.
 WORKDIR /app/backend
 RUN npm install --no-audit --no-fund
+
+# A partir de aquí (runtime) sí activamos producción: exige SECRET_KEY y habilita HSTS.
+ENV NODE_ENV=production
 
 # La app escucha en process.env.PORT (default 5000). Coolify inyecta PORT.
 EXPOSE 5000
