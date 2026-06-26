@@ -20,12 +20,9 @@ function getDefaultApiUrl() {
     return 'http://localhost:5000';
   }
 
-  if (hostname.endsWith('onrender.com')) {
-    return window.location.origin;
-  }
-
-  // Compatibilidad con el despliegue previo del frontend separado del backend.
-  return 'https://sistemagestion-pk62.onrender.com';
+  // El backend sirve el frontend desde el mismo origen (Render, Coolify, etc.),
+  // así que la API vive en el mismo host bajo /api.
+  return window.location.origin;
 }
 
 export const API_URL = normalizeUrl(process.env.REACT_APP_API_URL || getDefaultApiUrl());
