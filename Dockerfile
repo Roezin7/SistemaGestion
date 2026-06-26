@@ -20,6 +20,11 @@ RUN npm install --no-audit --no-fund
 # Imagen final ligera: solo backend (deps de producción) + la carpeta build/ del frontend.
 FROM node:20-bookworm-slim
 
+# curl es necesario para el healthcheck de Coolify (la imagen slim no lo incluye).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 WORKDIR /app
 
