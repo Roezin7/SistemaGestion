@@ -1,0 +1,3 @@
+const express=require('express'),{verificarToken}=require('../middleware'),{registrarHistorial}=require('../utils/historial'),service=require('../services/reactivationService');const router=express.Router();router.use(verificarToken);
+router.get('/',async(req,res)=>{try{res.json(await service.listCampaigns(req.user.oficina_id));}catch(e){res.status(500).json({message:'No se pudieron cargar campañas'});}});
+router.post('/',async(req,res)=>{try{const row=await service.createCampaign(req.user.oficina_id,req.user.id,req.body||{});await registrarHistorial(req,`Se creó campaña ${row.id}`);res.status(201).json(row);}catch(e){res.status(e.status||500).json({message:e.status?e.message:'No se pudo crear campaña'});}});module.exports=router;

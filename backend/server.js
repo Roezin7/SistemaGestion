@@ -142,6 +142,16 @@ const kpisRoutes = require('./routes/kpis');
 const authRoutes = require('./routes/auth');
 const manualRoutes = require('./routes/manual');
 const prospectosRoutes = require('./routes/prospectos');
+const whatsappRoutes = require('./routes/whatsapp');
+const db = require('./db');
+const webhookWorker = require('./workers/webhookWorker');
+const conversationsRoutes = require('./routes/conversations');
+const outboundMessageWorker = require('./workers/outboundMessageWorker');
+const knowledgeRoutes = require('./routes/knowledge');
+const agentWorker = require('./workers/agentWorker');
+const appointmentsRoutes = require('./routes/appointments');
+const reactivationRoutes = require('./routes/reactivation');
+const engagementWorker = require('./workers/engagementWorker');
 
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/prospectos', prospectosRoutes);
@@ -149,6 +159,11 @@ app.use('/api/finanzas', finanzasRoutes);
 app.use('/api/kpis', kpisRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/manual', manualRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/conversations', conversationsRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/reactivation', reactivationRoutes);
 
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large') {
@@ -186,7 +201,24 @@ app.use((err, req, res, next) => {
 
 // 🔹 Ruta de prueba para verificar que el backend funciona
 app.get('/api/status', (req, res) => {
-  res.json({ status: "ok" });
+  res.json({
+    status: 'ok',
+    webhook_worker: webhookWorker.getStatus(),
+    outbound_worker: outboundMessageWorker.getStatus(),
+    agent_worker: agentWorker.getStatus(),
+    engagement_worker: engagementWorker.getStatus(),
+  });
+});
+
+app.get('/api/health/ready', async (req, res) => {
+  try {
+    const required=['whatsapp_connections','conversations','outbound_message_jobs','services','agent_jobs','appointments','followup_jobs','reactivation_campaigns'];
+    const result=await db.query('SELECT name,to_regclass(name) AS relation FROM unnest($1::text[]) AS name',[required]);
+    if(result.rows.some((row)=>!row.relation))return res.status(503).json({status:'not_ready',reason:'migrations_pending'});
+    return res.json({ status: 'ready' });
+  } catch (error) {
+    return res.status(503).json({ status: 'not_ready' });
+  }
 });
 
 // 🚀 Servir el frontend correctamente 🚀
@@ -203,7 +235,20 @@ app.get('*', (req, res, next) => {
 
 // 🔹 Iniciar el servidor en el puerto definido
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server=app.listen(PORT, () => {
   console.log(`CORS origins configurados: ${configuredOrigins.join(', ') || 'ninguno (modo compatible activo)'}`);
   console.log(`Servidor corriendo en el puerto ${PORT}`);
+  webhookWorker.start();
+  outboundMessageWorker.start();
+  agentWorker.start();
+  engagementWorker.start();
 });
+
+let shuttingDown=false;
+async function shutdown(signal){if(shuttingDown)return;shuttingDown=true;console.log(JSON.stringify({timestamp:new Date().toISOString(),level:'info',event:'server_shutdown',signal}));
+  webhookWorker.stop();outboundMessageWorker.stop();agentWorker.stop();engagementWorker.stop();
+  server.close(async()=>{await db.pool.end();process.exit(0);});
+  setTimeout(()=>process.exit(1),10000).unref();
+}
+process.on('SIGTERM',()=>void shutdown('SIGTERM'));
+process.on('SIGINT',()=>void shutdown('SIGINT'));

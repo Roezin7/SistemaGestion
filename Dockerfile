@@ -38,4 +38,7 @@ WORKDIR /app/backend
 # La app escucha en process.env.PORT (default 5000). Coolify inyecta PORT.
 EXPOSE 5000
 
-CMD ["node", "server.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl --fail "http://127.0.0.1:${PORT:-5000}/api/health/ready" || exit 1
+
+CMD ["sh", "-c", "npm run migrate:whatsapp-system && exec node server.js"]

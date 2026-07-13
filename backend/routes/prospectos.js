@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken, allowRoles } = require('../middleware');
+const { normalizePhone } = require('../utils/phone');
 
 const router = express.Router();
 
@@ -84,6 +85,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const nombre = normalizarTexto(req.body.nombre);
   const telefono = normalizarTexto(req.body.telefono);
+  const telefonoNormalizado = normalizePhone(telefono);
   const email = normalizarTexto(req.body.email) || null;
   const interes = normalizarTexto(req.body.interes) || null;
   const origen = normalizarTexto(req.body.origen) || null;
@@ -93,21 +95,22 @@ router.post('/', async (req, res) => {
   const fechaProximoSeguimiento = normalizarFechaOpcional(req.body.fecha_proximo_seguimiento);
   const notas = normalizarTexto(req.body.notas) || null;
 
-  if (!nombre || !telefono) {
-    return res.status(400).json({ error: 'Nombre y teléfono son obligatorios.' });
+  if (!nombre || !telefonoNormalizado) {
+    return res.status(400).json({ error: 'Nombre y teléfono válido son obligatorios.' });
   }
 
   try {
     const result = await db.query(
       `INSERT INTO prospectos
-         (oficina_id, nombre, telefono, email, interes, origen, estado, prioridad,
+         (oficina_id, nombre, telefono, telefono_normalizado, email, interes, origen, estado, prioridad,
           fecha_ultimo_contacto, fecha_proximo_seguimiento, notas)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         req.user.oficina_id,
         nombre,
         telefono,
+        telefonoNormalizado,
         email,
         interes,
         origen,
@@ -136,6 +139,7 @@ router.put('/:id', async (req, res) => {
 
     const nombre = normalizarTexto(req.body.nombre) || actual.nombre;
     const telefono = normalizarTexto(req.body.telefono) || actual.telefono;
+    const telefonoNormalizado = normalizePhone(telefono);
     const email = Object.prototype.hasOwnProperty.call(req.body, 'email')
       ? normalizarTexto(req.body.email) || null
       : actual.email;
@@ -161,28 +165,30 @@ router.put('/:id', async (req, res) => {
       ? normalizarTexto(req.body.notas) || null
       : actual.notas;
 
-    if (!nombre || !telefono) {
-      return res.status(400).json({ error: 'Nombre y teléfono son obligatorios.' });
+    if (!nombre || !telefonoNormalizado) {
+      return res.status(400).json({ error: 'Nombre y teléfono válido son obligatorios.' });
     }
 
     const result = await db.query(
       `UPDATE prospectos SET
          nombre = $1,
          telefono = $2,
-         email = $3,
-         interes = $4,
-         origen = $5,
-         estado = $6,
-         prioridad = $7,
-         fecha_ultimo_contacto = $8,
-         fecha_proximo_seguimiento = $9,
-         notas = $10,
+         telefono_normalizado = $3,
+         email = $4,
+         interes = $5,
+         origen = $6,
+         estado = $7,
+         prioridad = $8,
+         fecha_ultimo_contacto = $9,
+         fecha_proximo_seguimiento = $10,
+         notas = $11,
          updated_at = NOW()
-       WHERE id = $11 AND oficina_id = $12
+       WHERE id = $12 AND oficina_id = $13
        RETURNING *`,
       [
         nombre,
         telefono,
+        telefonoNormalizado,
         email,
         interes,
         origen,

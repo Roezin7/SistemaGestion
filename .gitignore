@@ -1,0 +1,5 @@
+.DS_Store
+.claude/
+backend/.env
+backend/uploads/
+frontend/gestion-tramites-frontend/build/

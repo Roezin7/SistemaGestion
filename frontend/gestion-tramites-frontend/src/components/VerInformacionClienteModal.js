@@ -96,6 +96,16 @@ export default function VerInformacionClienteModal({
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Typography>
+                    <strong>Teléfono:</strong> {clienteData.telefono || '—'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
+                    <strong>Registro:</strong> {clienteData.activo === false ? 'Inactivo' : 'Activo'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography>
                     <strong>Nombre:</strong> {clienteData.nombre}
                   </Typography>
                 </Grid>

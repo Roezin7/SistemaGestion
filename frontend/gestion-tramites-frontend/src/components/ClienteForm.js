@@ -25,6 +25,7 @@ function ClienteForm({
     numeroRecibo: '',
     estadoTramite: 'Recepción de documentos',
     fecha_inicio_tramite: '',
+    telefono: '',
   });
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState({ open: false, severity: 'success', message: '' });
@@ -49,6 +50,7 @@ function ClienteForm({
         numeroRecibo: '',
         estadoTramite: 'Recepción de documentos',
         fecha_inicio_tramite: '',
+        telefono: '',
       });
       setFeedback({
         open: true,
@@ -79,6 +81,16 @@ function ClienteForm({
           required
           fullWidth
           autoFocus
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Teléfono con lada"
+          name="telefono"
+          value={formData.telefono}
+          onChange={handleChange}
+          required
+          fullWidth
         />
       </Grid>
       <Grid item xs={12} sm={6}>

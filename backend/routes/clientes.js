@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { registrarHistorial } = require('../utils/historial');
 const { verificarToken, allowRoles } = require('../middleware');
+const { normalizePhone } = require('../utils/phone');
 
 const UPLOADS_ROOT = path.resolve(path.join(__dirname, '../uploads'));
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
@@ -164,18 +165,30 @@ router.post('/', verificarToken, async (req, res) => {
   const numeroRecibo = normalizarTexto(req.body.numeroRecibo);
   const estadoTramite = normalizarTexto(req.body.estadoTramite) || 'Recepción de documentos';
   const fecha_inicio_tramite = normalizarFechaOpcional(req.body.fecha_inicio_tramite);
+  const telefono = normalizarTexto(req.body.telefono);
+  const telefonoNormalizado = normalizePhone(telefono);
 
-  if (!nombre || !numeroRecibo) {
-    return res.status(400).json({ error: 'Nombre y número de recibo son obligatorios.' });
+  if (!nombre || !numeroRecibo || !telefonoNormalizado) {
+    return res.status(400).json({ error: 'Nombre, número de recibo y teléfono válido son obligatorios.' });
   }
 
   try {
     const insert = await db.query(
       `INSERT INTO clientes
-         (oficina_id, nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite, costo_total_tramite)
-       VALUES ($1, $2, $3, $4, $5, $6, NULL)
+         (oficina_id, nombre, integrantes, numero_recibo, estado_tramite, fecha_inicio_tramite,
+          costo_total_tramite, telefono, telefono_normalizado, activo)
+       VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $8, TRUE)
        RETURNING *`,
-      [req.user.oficina_id, nombre, integrantes, numeroRecibo, estadoTramite, fecha_inicio_tramite]
+      [
+        req.user.oficina_id,
+        nombre,
+        integrantes,
+        numeroRecibo,
+        estadoTramite,
+        fecha_inicio_tramite,
+        telefono,
+        telefonoNormalizado,
+      ]
     );
 
     const nuevo = await obtenerClientePorId(insert.rows[0].id, req.user.oficina_id);
@@ -200,6 +213,8 @@ router.put('/:id', verificarToken, async (req, res) => {
     costo_total_tramite,
     costo_total_documentos,
     abono_inicial,
+    telefono,
+    activo,
   } = req.body;
 
   nombre = normalizarTexto(nombre) || null;
@@ -212,6 +227,13 @@ router.put('/:id', verificarToken, async (req, res) => {
   costo_total_tramite = costo_total_tramite === '' ? null : costo_total_tramite;
   costo_total_documentos = costo_total_documentos === '' ? null : costo_total_documentos;
   abono_inicial = abono_inicial === '' ? null : abono_inicial;
+  const telefonoFueEnviado = Object.prototype.hasOwnProperty.call(req.body, 'telefono');
+  telefono = telefonoFueEnviado ? normalizarTexto(telefono) : null;
+  const telefonoNormalizado = telefonoFueEnviado ? normalizePhone(telefono) : null;
+  if (telefonoFueEnviado && !telefonoNormalizado && activo !== false) {
+    return res.status(400).json({ error: 'El teléfono no es válido.' });
+  }
+  const activoFueEnviado = typeof activo === 'boolean';
 
   try {
     const updateResult = await db.query(
@@ -225,8 +247,11 @@ router.put('/:id', verificarToken, async (req, res) => {
          fecha_inicio_tramite = COALESCE($7, fecha_inicio_tramite),
          costo_total_tramite = COALESCE($8, costo_total_tramite),
          costo_total_documentos = COALESCE($9, costo_total_documentos),
-         abono_inicial = COALESCE($10, abono_inicial)
-       WHERE id = $11 AND oficina_id = $12`,
+         abono_inicial = COALESCE($10, abono_inicial),
+         telefono = CASE WHEN $11 THEN $12 ELSE telefono END,
+         telefono_normalizado = CASE WHEN $11 THEN $13 ELSE telefono_normalizado END,
+         activo = CASE WHEN $14 THEN $15 ELSE activo END
+       WHERE id = $16 AND oficina_id = $17`,
       [
         nombre,
         integrantes,
@@ -238,6 +263,11 @@ router.put('/:id', verificarToken, async (req, res) => {
         costo_total_tramite,
         costo_total_documentos,
         abono_inicial,
+        telefonoFueEnviado,
+        telefono,
+        telefonoNormalizado,
+        activoFueEnviado,
+        activoFueEnviado ? activo : null,
         id,
         req.user.oficina_id,
       ]

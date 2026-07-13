@@ -20,6 +20,11 @@ import {
   Dashboard as DashboardIcon,
   MenuBook,
   PersonSearch,
+  Settings,
+  Forum,
+  LibraryBooks,
+  Campaign,
+  Event,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import ClientesPage from './components/ClientesPage';
@@ -27,6 +32,11 @@ import ProspectosPage from './components/ProspectosPage';
 import FinanzasPage from './components/FinanzasPage';
 import ReportesPage from './components/ReportesPage';
 import ManualOperativoPage from './components/ManualOperativoPage';
+import WhatsAppSettingsPage from './components/WhatsAppSettingsPage';
+import ConversationsPage from './components/ConversationsPage';
+import KnowledgeAdminPage from './components/KnowledgeAdminPage';
+import ReactivationPage from './components/ReactivationPage';
+import AgendaPage from './components/AgendaPage';
 import LoginPage from './components/LoginPage';
 import AdminBanner from './components/AdminBanner';
 import HistorialModal from './components/HistorialModal';
@@ -225,6 +235,11 @@ function App() {
                 <Tab label="Finanzas" icon={<AttachMoney />} iconPosition="start" {...a11yProps(3)} />
                 <Tab label="Reportes" icon={<Assessment />} iconPosition="start" {...a11yProps(4)} />
                 <Tab label="Manual" icon={<MenuBook />} iconPosition="start" {...a11yProps(5)} />
+                <Tab label="WhatsApp" icon={<Settings />} iconPosition="start" {...a11yProps(6)} />
+                <Tab label="Bandeja" icon={<Forum />} iconPosition="start" {...a11yProps(7)} />
+                <Tab label="Conocimiento" icon={<LibraryBooks />} iconPosition="start" {...a11yProps(8)} />
+                <Tab label="Reactivación" icon={<Campaign />} iconPosition="start" {...a11yProps(9)} />
+                <Tab label="Agenda" icon={<Event />} iconPosition="start" {...a11yProps(10)} />
               </Tabs>
             </Stack>
 
@@ -303,6 +318,21 @@ function App() {
           </TabPanel>
           <TabPanel value={tabIndex} index={5}>
             <ManualOperativoPage user={user} />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={6}>
+            <WhatsAppSettingsPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={7}>
+            <ConversationsPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={8}>
+            <KnowledgeAdminPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={9}>
+            <ReactivationPage />
+          </TabPanel>
+          <TabPanel value={tabIndex} index={10}>
+            <AgendaPage />
           </TabPanel>
         </Box>
 

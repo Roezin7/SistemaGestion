@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Grid, MenuItem, TextField
+  Button, FormControlLabel, Grid, MenuItem, Switch, TextField
 } from '@mui/material';
 import api from '../services/api';
 import { ESTADOS_TRAMITE } from '../utils/statusUtils';
@@ -23,7 +23,9 @@ export default function EditarClienteModal({
     fecha_cita_consular: '',
     fecha_inicio_tramite: '',
     costo_total_tramite: '',
-    costo_total_documentos: ''
+    costo_total_documentos: '',
+    telefono: '',
+    activo: true,
   });
 
   // Cuando se abra, cargar datos
@@ -41,15 +43,17 @@ export default function EditarClienteModal({
         fecha_cita_consular: c.fecha_cita_consular?.slice(0,10) || '',
         fecha_inicio_tramite: c.fecha_inicio_tramite?.slice(0,10) || '',
         costo_total_tramite: c.costo_total_tramite || '',
-        costo_total_documentos: c.costo_total_documentos || ''
+        costo_total_documentos: c.costo_total_documentos || '',
+        telefono: c.telefono || '',
+        activo: c.activo !== false
       });
     })
     .catch(console.error);
   }, [open, cliente]);
 
   const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(fd => ({ ...fd, [name]: value }));
+    const { name, value, checked, type } = e.target;
+    setFormData(fd => ({ ...fd, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSave = () => {
@@ -73,6 +77,21 @@ export default function EditarClienteModal({
       <DialogTitle>Editar Cliente</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <TextField
+              label="Teléfono con lada"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={<Switch name="activo" checked={formData.activo} onChange={handleChange} />}
+              label="Cliente activo"
+            />
+          </Grid>
           <Grid item xs={6}>
             <TextField
               label="Nombre"
