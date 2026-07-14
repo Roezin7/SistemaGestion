@@ -3,6 +3,7 @@ const { OpenAIResponsesClient } = require('../integrations/openai/OpenAIResponse
 const knowledgeService = require('./knowledgeService');
 const appointmentService = require('./appointmentService');
 const logger = require('../utils/structuredLogger');
+const { envEnabled } = require('../utils/env');
 
 const MAX_ATTEMPTS = 3;
 const schema = {
@@ -33,7 +34,7 @@ const schema = {
 };
 
 async function enqueueForInbound(client, conversation, messageId) {
-  if (process.env.AGENT_AUTOMATION_ENABLED !== 'true') return;
+  if (!envEnabled('AGENT_AUTOMATION_ENABLED')) return;
   await client.query(
     `INSERT INTO agent_jobs(oficina_id,conversation_id,trigger_message_id,automation_version)
      SELECT c.oficina_id,c.id,$2,c.automation_version FROM conversations c
@@ -76,7 +77,7 @@ async function loadAgentContext(job) {
 
 function eligible(job, context) {
   const c=context.conversation;
-  return process.env.AGENT_AUTOMATION_ENABLED==='true' && c && c.agent_enabled && c.connection_enabled
+  return envEnabled('AGENT_AUTOMATION_ENABLED') && c && c.agent_enabled && c.connection_enabled
     && c.attention_mode==='automatico' && c.automation_enabled && !c.do_not_contact_at
     && c.automation_version===job.automation_version;
 }

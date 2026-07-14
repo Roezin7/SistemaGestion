@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { encryptSecret, decryptSecret } = require('../utils/credentialCrypto');
 const { normalizePhone } = require('../utils/phone');
+const { envEnabled } = require('../utils/env');
 
 function normalizeOptionalText(value) {
   if (value === null || typeof value === 'undefined') return null;
@@ -11,7 +12,7 @@ function normalizeOptionalText(value) {
 
 function mapSettingsRow(row) {
   const phoneRegistryReady = Boolean(row.system_phone_registry_ready);
-  const globalAutomationEnabled = process.env.AGENT_AUTOMATION_ENABLED === 'true';
+  const globalAutomationEnabled = envEnabled('AGENT_AUTOMATION_ENABLED');
   return {
     connection: {
       id: row.connection_id,

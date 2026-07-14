@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const followupService = require('./followupService');
 const reactivationService = require('./reactivationService');
+const { envEnabled } = require('../utils/env');
 
 const PAGE_SIZE = 40;
 
@@ -206,7 +207,7 @@ async function setConversationMode(oficinaId, userId, conversationId, action) {
          JOIN whatsapp_connections wc ON wc.oficina_id=ac.oficina_id AND wc.provider='wasender'
          WHERE ac.oficina_id=$1`, [oficinaId]
       );
-      if (process.env.AGENT_AUTOMATION_ENABLED !== 'true' || !automation.rows[0]?.agent_enabled || !automation.rows[0]?.connection_enabled) {
+      if (!envEnabled('AGENT_AUTOMATION_ENABLED') || !automation.rows[0]?.agent_enabled || !automation.rows[0]?.connection_enabled) {
         const error = new Error('Habilita la conexión, el agente de la oficina y el interruptor global antes de activar el bot');
         error.status = 409;
         throw error;
