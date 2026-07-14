@@ -173,8 +173,13 @@ async function setConversationMode(oficinaId, userId, conversationId, action) {
     if (!conversation) return null;
 
     if (action === 'resume') {
-      if (conversation.source_type !== 'meta_ad' || conversation.do_not_contact_at) {
-        const error = new Error('Solo una conversación publicitaria contactable puede reactivar el modo automático');
+      if (conversation.do_not_contact_at) {
+        const error = new Error('La conversación está marcada como no contactar');
+        error.status = 409;
+        throw error;
+      }
+      if (!conversation.phone_normalized) {
+        const error = new Error('La conversación no tiene un teléfono resoluble');
         error.status = 409;
         throw error;
       }
@@ -187,11 +192,40 @@ async function setConversationMode(oficinaId, userId, conversationId, action) {
         error.status = 409;
         throw error;
       }
+      const appointment = await client.query(
+        "SELECT 1 FROM appointments WHERE conversation_id=$1 AND status='scheduled' LIMIT 1",
+        [conversation.id]
+      );
+      if (appointment.rows[0]) {
+        const error = new Error('La conversación ya tiene una cita programada');
+        error.status = 409;
+        throw error;
+      }
+      const automation = await client.query(
+        `SELECT ac.agent_enabled,wc.enabled AS connection_enabled FROM agent_configurations ac
+         JOIN whatsapp_connections wc ON wc.oficina_id=ac.oficina_id AND wc.provider='wasender'
+         WHERE ac.oficina_id=$1`, [oficinaId]
+      );
+      if (process.env.AGENT_AUTOMATION_ENABLED !== 'true' || !automation.rows[0]?.agent_enabled || !automation.rows[0]?.connection_enabled) {
+        const error = new Error('Habilita la conexión, el agente de la oficina y el interruptor global antes de activar el bot');
+        error.status = 409;
+        throw error;
+      }
       await client.query(
         `UPDATE conversations SET attention_mode = 'automatico', automation_enabled = TRUE,
           automation_block_reason = NULL, paused_at = NULL, automation_version = automation_version + 1,
           updated_at = NOW() WHERE id = $1`,
         [conversation.id]
+      );
+      const refreshed=await client.query('SELECT automation_version FROM conversations WHERE id=$1',[conversation.id]);
+      await client.query(
+        `INSERT INTO agent_jobs(oficina_id,conversation_id,trigger_message_id,automation_version)
+         SELECT $1,$2,m.id,$3 FROM conversation_messages m
+         WHERE m.conversation_id=$2 AND m.direction='inbound'
+           AND NOT EXISTS(SELECT 1 FROM conversation_messages later WHERE later.conversation_id=m.conversation_id
+             AND later.id>m.id AND later.direction='outbound' AND later.sender_type='employee')
+         ORDER BY m.id DESC LIMIT 1 ON CONFLICT(trigger_message_id) DO NOTHING`,
+        [oficinaId,conversation.id,refreshed.rows[0].automation_version]
       );
     } else {
       await followupService.cancelForConversation(client, conversation.id, `mode_${action}`);

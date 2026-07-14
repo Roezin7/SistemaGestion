@@ -89,6 +89,7 @@ export default function ConversationsPage() {
       setError(requestError.response?.data?.message || 'No se pudo cambiar el modo.');
     }
   };
+  const activateBot=()=>{if(selected?.source_type==='organic'&&!window.confirm('Esta conversación llegó de forma orgánica. ¿Deseas activar manualmente el bot para sus próximos mensajes?'))return;changeMode('resume');};
   const doNotContact=async()=>{try{await api.post(`/api/conversations/${selectedId}/do-not-contact`,{reason:'Marcado desde la bandeja'});await Promise.all([loadConversation(selectedId),loadList()]);}catch(e){setError(e.response?.data?.message||'No se pudo marcar.');}};
   const schedule = async () => {
     try { await api.post('/api/appointments', { ...appointment, scheduled_at: new Date(appointment.scheduled_at).toISOString(), conversation_id: selectedId }); setAppointmentOpen(false);
@@ -137,7 +138,7 @@ export default function ConversationsPage() {
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button size="small" onClick={() => changeMode('handoff')}>Tomar</Button>
                 <Button size="small" onClick={() => changeMode('pause')}>Pausar</Button>
-                <Button size="small" onClick={() => changeMode('resume')} disabled={selected.source_type !== 'meta_ad'}>Reactivar</Button>
+                <Button size="small" onClick={activateBot} disabled={selected.attention_mode==='automatico'||Boolean(selected.do_not_contact_at)}>Activar bot</Button>
                 <Button size="small" variant="contained" onClick={() => setAppointmentOpen(true)}>Agendar</Button>
                 <Button size="small" color="error" onClick={doNotContact} disabled={Boolean(selected.do_not_contact_at)}>No contactar</Button>
               </Stack></Stack></Box><Divider />

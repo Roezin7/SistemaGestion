@@ -64,7 +64,9 @@ for (const action of ['pause', 'resume', 'handoff']) {
         req.user.oficina_id, req.user.id, req.params.id, action
       );
       if (!conversation) return res.status(404).json({ message: 'Conversación no encontrada' });
-      await registrarHistorial(req, `Se ejecutó ${action} en conversación ${req.params.id}`);
+      await registrarHistorial(req, action==='resume'
+        ? `Se activó manualmente el bot en conversación ${req.params.id}`
+        : `Se ejecutó ${action} en conversación ${req.params.id}`);
       return res.json(conversation);
     } catch (error) {
       return handleError(res, error, 'No se pudo cambiar el modo de la conversación');
