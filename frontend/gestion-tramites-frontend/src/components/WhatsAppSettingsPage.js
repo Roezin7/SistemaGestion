@@ -145,9 +145,7 @@ export default function WhatsAppSettingsPage() {
       {message ? <Alert severity={message.type} onClose={() => setMessage(null)}>{message.text}</Alert> : null}
       {!settings.safety.phone_registry_ready ? (
         <Alert severity="warning">
-          {settings.safety.active_clients_without_phone > 0
-            ? `Hay ${settings.safety.active_clients_without_phone} clientes activos sin teléfono en esta oficina. `
-            : 'Otra oficina todavía tiene clientes activos sin teléfono. '}
+          {`Hay ${settings.safety.active_clients_without_phone} clientes activos sin teléfono en esta oficina. `}
           El agente seguirá bloqueado hasta completar los teléfonos o marcar esos expedientes inactivos.
         </Alert>
       ) : null}

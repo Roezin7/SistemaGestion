@@ -101,7 +101,8 @@ async function getOfficeSettings(oficinaId, client = db) {
          WHERE c.activo = TRUE AND c.oficina_id = wc.oficina_id AND c.telefono_normalizado IS NULL)
          AS active_clients_without_phone,
        NOT EXISTS (
-         SELECT 1 FROM clientes c WHERE c.activo = TRUE AND c.telefono_normalizado IS NULL
+         SELECT 1 FROM clientes c
+         WHERE c.activo = TRUE AND c.oficina_id = wc.oficina_id AND c.telefono_normalizado IS NULL
        ) AS system_phone_registry_ready
      FROM whatsapp_connections wc
      INNER JOIN agent_configurations ac ON ac.oficina_id = wc.oficina_id
@@ -207,7 +208,8 @@ async function updateOfficeSettings(oficinaId, userId, input) {
       const safetyResult = await client.query(
         `SELECT COUNT(*)::int AS unresolved
            FROM clientes
-          WHERE activo = TRUE AND telefono_normalizado IS NULL`
+          WHERE oficina_id = $1 AND activo = TRUE AND telefono_normalizado IS NULL`,
+        [oficinaId]
       );
       if (safetyResult.rows[0].unresolved > 0) {
         const error = new Error(
